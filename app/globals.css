@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body { background: #0a0e14; color: #f1f5f9; -webkit-font-smoothing: antialiased; }
+::selection { background: rgba(16, 185, 129, 0.3); color: white; }
+
+.scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+.scrollbar::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+.scrollbar::-webkit-scrollbar-track { background: transparent; }
+
+.grad-card { background: linear-gradient(180deg, rgba(31, 41, 55, 0.4) 0%, rgba(19, 25, 34, 0.6) 100%); }
+.stage-badge { font-size: 10px; padding: 2px 8px; border-radius: 9999px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 5px; }
