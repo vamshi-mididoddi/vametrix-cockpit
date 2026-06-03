@@ -58,6 +58,7 @@ async function loadThreads(selectedPhone?: string) {
   // Selected thread: full chronological
   let selectedMsgs: Message[] = [];
   let selectedLead: any = null;
+  let statusByMsgId: Record<string, string> = {};
   const sel = selectedPhone || (threadList[0]?.phone);
   if (sel) {
     const { data: full } = await supa
@@ -68,13 +69,37 @@ async function loadThreads(selectedPhone?: string) {
       .limit(500);
     selectedMsgs = (full || []) as Message[];
     selectedLead = leadByPhone[sel] || null;
+
+    // Pull delivery / read / failed receipts for this phone, build map by meta_message_id
+    const { data: statuses } = await supa
+      .from('wa_message_status')
+      .select('meta_message_id,status,created_at')
+      .eq('phone', sel)
+      .order('created_at', { ascending: true });
+    const priority: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
+    for (const s of (statuses || []) as any[]) {
+      if (!s.meta_message_id) continue;
+      const cur = statusByMsgId[s.meta_message_id];
+      if (!cur || (priority[s.status] || 0) > (priority[cur] || 0)) {
+        statusByMsgId[s.meta_message_id] = s.status;
+      }
+    }
   }
 
-  return { threadList, leadByPhone, selectedPhone: sel, selectedMsgs, selectedLead };
+  return { threadList, leadByPhone, selectedPhone: sel, selectedMsgs, selectedLead, statusByMsgId };
+}
+
+function statusIndicator(status: string | undefined) {
+  if (!status) return { icon: '⏱', cls: 'text-slate-500', label: 'pending' };
+  if (status === 'sent')      return { icon: '✓',  cls: 'text-slate-400', label: 'sent' };
+  if (status === 'delivered') return { icon: '✓✓', cls: 'text-slate-400', label: 'delivered' };
+  if (status === 'read')      return { icon: '✓✓', cls: 'text-sky-400',   label: 'READ' };
+  if (status === 'failed')    return { icon: '✗',  cls: 'text-rose-400',  label: 'FAILED' };
+  return { icon: status, cls: 'text-slate-500', label: status };
 }
 
 export default async function Page({ searchParams }: { searchParams: { phone?: string } }) {
-  const { threadList, leadByPhone, selectedPhone, selectedMsgs, selectedLead } = await loadThreads(searchParams.phone);
+  const { threadList, leadByPhone, selectedPhone, selectedMsgs, selectedLead, statusByMsgId } = await loadThreads(searchParams.phone);
 
   return (
     <>
@@ -160,14 +185,28 @@ export default async function Page({ searchParams }: { searchParams: { phone?: s
                 const tag = meta.nurture_lifecycle ? `🔔 ${meta.nurture_lifecycle}` :
                   meta.nurture_tier ? `🔔 ${meta.nurture_tier}` :
                   meta.template_name ? `📋 ${meta.template_name}` : null;
+                // Extract Meta message id from various meta shapes and look up delivery status
+                const metaMsgId = (meta?.meta_send_response?.messages?.[0]?.id) || meta?.meta_message_id;
+                const status = (!isIn && metaMsgId) ? statusByMsgId[metaMsgId] : undefined;
+                const ind = !isIn ? statusIndicator(status) : null;
+                const failed = status === 'failed';
+                const bubbleClass = isIn
+                  ? 'bg-slate-800 text-slate-100 border border-slate-700'
+                  : failed
+                    ? 'bg-rose-500/10 text-rose-50 border border-rose-500/30'
+                    : 'bg-accent-500/10 text-accent-50 border border-accent-500/20';
                 return (
                   <div key={i} className={`flex ${isIn ? 'justify-start' : 'justify-end'}`}>
                     <div className="max-w-[75%]">
-                      <div className={`rounded-xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words leading-relaxed ${isIn ? 'bg-slate-800 text-slate-100 border border-slate-700' : 'bg-accent-500/10 text-accent-50 border border-accent-500/20'}`}>
+                      <div className={`rounded-xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words leading-relaxed ${bubbleClass}`}>
                         {m.message}
                       </div>
-                      <div className={`text-[10px] text-slate-500 mt-1 px-1 font-mono ${isIn ? 'text-left' : 'text-right'}`}>
-                        {new Date(m.created_at).toLocaleString('en-IN')} {tag && <span className="text-slate-400">· {tag}</span>}
+                      <div className={`text-[10px] mt-1 px-1 font-mono flex items-center gap-1.5 ${isIn ? 'text-left justify-start' : 'text-right justify-end'} text-slate-500`}>
+                        <span>{new Date(m.created_at).toLocaleString('en-IN')}</span>
+                        {tag && <span className="text-slate-400">· {tag}</span>}
+                        {ind && (
+                          <span className={`${ind.cls} font-semibold`} title={ind.label}>· {ind.icon} {ind.label}</span>
+                        )}
                       </div>
                     </div>
                   </div>
