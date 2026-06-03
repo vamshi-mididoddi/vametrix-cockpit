@@ -15,15 +15,66 @@ const STATUS_COLOR: Record<string, string> = {
 
 async function loadTemplates() {
   const supa = supabaseAdmin();
-  const { data } = await supa
-    .from('wa_templates')
-    .select('*')
-    .order('approved_at', { ascending: false, nullsFirst: false });
-  return (data || []) as any[];
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const [{ data: tpls }, { data: sends }, { data: statuses }] = await Promise.all([
+    supa.from('wa_templates').select('*').order('approved_at', { ascending: false, nullsFirst: false }),
+    supa.from('conversations').select('phone,template_name,meta,created_at')
+      .eq('meta->>source', 'vametrix_51_send_template').gte('created_at', since),
+    supa.from('wa_message_status').select('phone,status,meta_message_id,created_at').gte('created_at', since),
+  ]);
+
+  // Build performance map per template_name
+  const perf: Record<string, { sends: number; delivered: number; read: number; failed: number; replies: number }> = {};
+  const sendPhonesByTemplate: Record<string, Set<string>> = {};
+  const metaIdToTemplate: Record<string, string> = {};
+
+  for (const s of (sends || []) as any[]) {
+    const name = s.template_name || s.meta?.template_name;
+    if (!name) continue;
+    if (!perf[name]) perf[name] = { sends: 0, delivered: 0, read: 0, failed: 0, replies: 0 };
+    perf[name].sends++;
+    if (!sendPhonesByTemplate[name]) sendPhonesByTemplate[name] = new Set();
+    sendPhonesByTemplate[name].add(s.phone);
+    const metaId = s.meta?.meta_send_response?.messages?.[0]?.id;
+    if (metaId) metaIdToTemplate[metaId] = name;
+  }
+
+  for (const st of (statuses || []) as any[]) {
+    const name = metaIdToTemplate[st.meta_message_id];
+    if (!name || !perf[name]) continue;
+    if (st.status === 'delivered') perf[name].delivered++;
+    else if (st.status === 'read')  perf[name].read++;
+    else if (st.status === 'failed') perf[name].failed++;
+  }
+
+  // Replies: count distinct inbound phones that match send phones (per template)
+  if (Object.keys(sendPhonesByTemplate).length) {
+    const allSendPhones = Array.from(new Set(Object.values(sendPhonesByTemplate).flatMap(s => Array.from(s))));
+    if (allSendPhones.length > 0) {
+      const { data: replies } = await supa
+        .from('conversations').select('phone,created_at')
+        .eq('direction', 'inbound').gte('created_at', since).in('phone', allSendPhones).limit(20000);
+      for (const r of (replies || []) as any[]) {
+        for (const name of Object.keys(sendPhonesByTemplate)) {
+          if (sendPhonesByTemplate[name].has(r.phone)) {
+            perf[name].replies++;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return { tpls: (tpls || []) as any[], perf };
+}
+
+function pct(num: number, den: number) {
+  if (!den) return '—';
+  return Math.round((num / den) * 100) + '%';
 }
 
 export default async function Page() {
-  const tpls = await loadTemplates();
+  const { tpls, perf } = await loadTemplates();
   const approved = tpls.filter(t => t.status === 'APPROVED').length;
   const pending = tpls.filter(t => t.status === 'PENDING').length;
   const rejected = tpls.filter(t => t.status === 'REJECTED').length;
@@ -62,10 +113,13 @@ export default async function Page() {
               <tr className="text-[10px] uppercase tracking-wider text-slate-500">
                 <th className="text-left py-2 px-3">Name</th>
                 <th className="text-left py-2 px-3">Status</th>
-                <th className="text-left py-2 px-3">Category</th>
+                <th className="text-left py-2 px-3">Cat</th>
                 <th className="text-left py-2 px-3">Lang</th>
-                <th className="text-left py-2 px-3">Body</th>
-                <th className="text-left py-2 px-3">Meta ID</th>
+                <th className="text-right py-2 px-3" title="Total sends in last 30d">Sends</th>
+                <th className="text-right py-2 px-3" title="(delivered + read) / sends">Delivered</th>
+                <th className="text-right py-2 px-3" title="read / sends">Read</th>
+                <th className="text-right py-2 px-3" title="distinct phones that replied / sends">Reply</th>
+                <th className="text-right py-2 px-3" title="failed / sends">Fail</th>
               </tr>
             </thead>
             <tbody>
@@ -73,15 +127,23 @@ export default async function Page() {
                 <tr><td colSpan={6} className="py-6 text-center text-slate-500 text-sm">No templates yet.</td></tr>
               ) : tpls.map(t => {
                 const cls = STATUS_COLOR[t.status] || 'bg-slate-700 text-slate-300';
-                const bodyPreview = (t.body || '').replace(/\s+/g, ' ').slice(0, 90);
+                const bodyPreview = (t.body || '').replace(/\s+/g, ' ').slice(0, 70);
+                const p = perf[t.template_name] || { sends: 0, delivered: 0, read: 0, failed: 0, replies: 0 };
+                const deliveryRate = pct(p.delivered + p.read, p.sends);
+                const readRate = pct(p.read, p.sends);
+                const replyRate = pct(p.replies, p.sends);
+                const failRate = pct(p.failed, p.sends);
                 return (
                   <tr key={t.template_name} className="border-b border-bg-border hover:bg-bg-cardhover">
                     <td className="py-2 px-3 text-xs font-mono">{t.template_name}</td>
                     <td className="py-2 px-3"><span className={`stage-badge border ${cls}`}>{t.status}</span></td>
                     <td className="py-2 px-3 text-[11px] text-slate-400">{t.category}</td>
                     <td className="py-2 px-3 text-[11px] text-slate-500 font-mono">{t.language}</td>
-                    <td className="py-2 px-3 text-xs text-slate-300 max-w-md">{bodyPreview}</td>
-                    <td className="py-2 px-3 text-[10px] text-slate-600 font-mono">{t.meta_template_id || '—'}</td>
+                    <td className="py-2 px-3 text-xs text-right tabular-nums">{p.sends}</td>
+                    <td className="py-2 px-3 text-xs text-right tabular-nums text-slate-300">{deliveryRate}</td>
+                    <td className="py-2 px-3 text-xs text-right tabular-nums text-sky-400">{readRate}</td>
+                    <td className="py-2 px-3 text-xs text-right tabular-nums text-accent-400">{replyRate}</td>
+                    <td className={`py-2 px-3 text-xs text-right tabular-nums ${p.failed > 0 ? 'text-rose-400' : 'text-slate-600'}`}>{failRate}</td>
                   </tr>
                 );
               })}
