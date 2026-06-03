@@ -1,6 +1,7 @@
 import { TopBar } from '@/components/topbar';
 import { supabaseAdmin } from '@/lib/supabase';
 import { KnowledgeClient } from './client';
+import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -15,6 +16,7 @@ async function load() {
 }
 
 export default async function Page() {
+  await requireAdmin();
   const { docs, chunkCount } = await load();
   return (
     <>

@@ -1,7 +1,8 @@
 import { TopBar } from '@/components/topbar';
 import { AGENTS, INFRA, STATUS_META } from '@/lib/agents';
 import * as Icons from 'lucide-react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getCurrentUser, isAdminOnlyPath } from '@/lib/auth';
 
 function Icon({ name, className }: { name: string; className?: string }) {
   const pascal = name.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase());
@@ -9,7 +10,13 @@ function Icon({ name, className }: { name: string; className?: string }) {
   return <C className={className} strokeWidth={1.75} />;
 }
 
-export default function Page({ params }: { params: { slug: string } }) {
+export default async function Page({ params }: { params: { slug: string } }) {
+  // Enforce admin gate for admin-only paths
+  if (isAdminOnlyPath('/' + params.slug)) {
+    const user = await getCurrentUser();
+    if (!user || user.role !== 'admin') redirect('/?forbidden=' + params.slug);
+  }
+
   const agent = AGENTS.find(a => a.id === params.slug);
   const infra = INFRA.find(i => i.id === params.slug);
 

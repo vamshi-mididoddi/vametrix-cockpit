@@ -45,7 +45,7 @@ export const INFRA = [
   { id: 'knowledge', label: 'Knowledge Base',  icon: 'book',     status: 'live' as AgentStatus },
   { id: 'workflows', label: 'Workflows (n8n)', icon: 'workflow', status: 'live' as AgentStatus },
   { id: 'cost',      label: 'Cost Monitor',    icon: 'wallet',   status: 'live' as AgentStatus },
-  { id: 'team',      label: 'Team & Roles',    icon: 'users',    status: 'planned' as AgentStatus },
+  { id: 'team',      label: 'Team & Roles',    icon: 'users',    status: 'live' as AgentStatus },
   { id: 'audit',     label: 'Audit Log',       icon: 'clipboard-list', status: 'planned' as AgentStatus },
   { id: 'settings',  label: 'Settings',        icon: 'settings', status: 'live' as AgentStatus },
 ];

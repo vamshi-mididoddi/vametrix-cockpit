@@ -1,6 +1,7 @@
 import { TopBar } from '@/components/topbar';
 import { supabaseAdmin } from '@/lib/supabase';
 import Link from 'next/link';
+import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -114,6 +115,7 @@ async function load() {
 }
 
 export default async function Page() {
+  await requireAdmin();
   const events = await load();
   return (
     <>
