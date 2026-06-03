@@ -27,15 +27,29 @@ interface SendResult {
 const WEBHOOK_URL = 'https://n8n.srv1048087.hstgr.cloud/webhook/vametrix-51-send-template';
 
 function parseCsv(text: string): Row[] {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (lines.length === 0) return [];
-  const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-  return lines.slice(1).map(line => {
-    const cells = line.split(',').map(c => c.trim());
-    const row: Row = { phone: '' };
-    header.forEach((h, i) => { row[h] = cells[i] || ''; });
-    return row;
-  }).filter(r => r.phone);
+
+  // Auto-detect format: if first line has commas, treat as CSV with header.
+  // Otherwise treat each line as a plain phone number.
+  const firstLineHasComma = lines[0].includes(',');
+
+  if (firstLineHasComma) {
+    const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+    return lines.slice(1).map(line => {
+      const cells = line.split(',').map(c => c.trim());
+      const row: Row = { phone: '' };
+      header.forEach((h, i) => { row[h] = cells[i] || ''; });
+      return row;
+    }).filter(r => r.phone);
+  }
+
+  // Plain phone-only list — one phone per line (handles +91…, 91…, raw digits, with or without spaces/dashes)
+  return lines.map(line => {
+    const cleaned = line.replace(/[^+0-9]/g, '');
+    if (!cleaned || cleaned.replace(/\+/g, '').length < 8) return null;
+    return { phone: cleaned } as Row;
+  }).filter(Boolean) as Row[];
 }
 
 export function BroadcastClient({ templates }: { templates: Tpl[] }) {
@@ -180,8 +194,13 @@ export function BroadcastClient({ templates }: { templates: Tpl[] }) {
               />
             </div>
           </div>
-          <div className="mt-3 text-[11px] text-slate-500">
-            CSV header required: <code className="bg-bg-soft px-1.5 py-0.5 rounded text-slate-300">phone,name,brand_interest[,language]</code>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="text-[11px] text-slate-500">
+              Accepts either: (a) plain phone-per-line list, or (b) CSV with header <code className="bg-bg-soft px-1.5 py-0.5 rounded text-slate-300">phone,name,brand_interest[,language]</code>
+            </div>
+            <div className={`text-[11px] font-mono ${rows.length > 0 ? 'text-accent-400' : csvText.trim() ? 'text-rose-400' : 'text-slate-600'}`}>
+              {rows.length > 0 ? `✓ ${rows.length} parsed` : csvText.trim() ? '✗ 0 parsed — check format' : 'paste or upload to begin'}
+            </div>
           </div>
         </div>
 
