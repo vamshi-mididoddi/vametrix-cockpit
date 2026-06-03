@@ -42,6 +42,7 @@ export const INFRA = [
   { id: 'reminders', label: 'Smart Reminders', icon: 'bell-ring', status: 'live' as AgentStatus },
   { id: 'templates', label: 'WA Templates',    icon: 'file-text', status: 'live' as AgentStatus },
   { id: 'marketing', label: 'Marketing Brain', icon: 'rocket',   status: 'live' as AgentStatus },
+  { id: 'brands',    label: 'Brand Context',   icon: 'tag',      status: 'live' as AgentStatus },
   { id: 'tech-audit',label: 'Tech Stack Audit',icon: 'shield-check', status: 'live' as AgentStatus },
   { id: 'opt-outs',  label: 'Opt-outs',        icon: 'ban',      status: 'live' as AgentStatus },
   { id: 'knowledge', label: 'Knowledge Base',  icon: 'book',     status: 'live' as AgentStatus },
