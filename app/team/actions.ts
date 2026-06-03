@@ -16,13 +16,25 @@ export async function updateUserRole(userId: string, role: 'admin' | 'team'): Pr
   }
 }
 
-export async function inviteUser(email: string, fullName: string, role: 'admin' | 'team'): Promise<{ ok: boolean; error?: string; invite_url?: string }> {
+function randomPassword(): string {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let pw = '';
+  for (let i = 0; i < 12; i++) pw += charset.charAt(Math.floor(Math.random() * charset.length));
+  return 'Vam-' + pw;
+}
+
+export async function inviteUser(email: string, fullName: string, role: 'admin' | 'team'): Promise<{ ok: boolean; error?: string; temp_password?: string; email?: string }> {
   await requireAdmin();
   if (!email) return { ok: false, error: 'email required' };
   try {
     const supa = supabaseAdmin();
-    const { data, error } = await supa.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: fullName },
+    const tempPassword = randomPassword();
+    // Create user directly with auto-confirmed email — no SMTP needed
+    const { data, error } = await supa.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { full_name: fullName || email },
     });
     if (error) return { ok: false, error: error.message };
     // Set role on the auto-created profile
@@ -33,7 +45,7 @@ export async function inviteUser(email: string, fullName: string, role: 'admin' 
         full_name: fullName || email,
       });
     }
-    return { ok: true, invite_url: (data as any)?.properties?.action_link };
+    return { ok: true, temp_password: tempPassword, email };
   } catch (e: any) {
     return { ok: false, error: String(e?.message || e) };
   }

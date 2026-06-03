@@ -40,20 +40,29 @@ export function TeamClient({ initialUsers }: { initialUsers: U[] }) {
     });
   }
 
+  const [createdAccount, setCreatedAccount] = useState<{ email: string; password: string } | null>(null);
+
   function doInvite() {
     if (!inviteEmail) { setFeedback('email required'); return; }
     setFeedback(null);
+    setCreatedAccount(null);
     startTransition(async () => {
       const r = await inviteUser(inviteEmail, inviteName, inviteRole);
-      if (r.ok) {
-        setFeedback('✓ invite sent to ' + inviteEmail);
+      if (r.ok && r.temp_password) {
+        setFeedback(null);
+        setCreatedAccount({ email: r.email!, password: r.temp_password });
         setInviteEmail(''); setInviteName('');
         router.refresh();
-        setTimeout(() => { setShowInvite(false); setFeedback(null); }, 3000);
       } else {
         setFeedback('✗ ' + (r.error || 'failed'));
       }
     });
+  }
+
+  function copyCredentials() {
+    if (!createdAccount) return;
+    const text = `Vametrix Engine — login at vametrix-cockpit.vercel.app/login\nEmail: ${createdAccount.email}\nTemp password: ${createdAccount.password}\n\nChange your password after first sign-in at /profile.`;
+    navigator.clipboard.writeText(text);
   }
 
   function doDelete(id: string, email: string) {
@@ -116,13 +125,33 @@ export function TeamClient({ initialUsers }: { initialUsers: U[] }) {
           <div className="flex items-center gap-2">
             <button onClick={doInvite} disabled={pending || !inviteEmail}
               className="px-4 py-2 text-sm rounded-md bg-accent-500/15 text-accent-300 border border-accent-500/30 hover:bg-accent-500/25 disabled:opacity-50">
-              {pending ? 'Sending…' : 'Send invite'}
+              {pending ? 'Creating…' : 'Create account'}
             </button>
             {feedback && <span className={`text-xs ${feedback.startsWith('✓') ? 'text-accent-400' : 'text-rose-400'}`}>{feedback}</span>}
           </div>
           <div className="mt-2 text-[10px] text-slate-500">
-            Supabase will email them a magic link to set their password. Make sure email confirmation is configured in Supabase Auth settings.
+            Creates the account instantly with a temp password (no email needed). Share the password with them via WhatsApp/Slack — they change it on first sign-in.
           </div>
+
+          {createdAccount && (
+            <div className="mt-4 bg-accent-500/10 border border-accent-500/30 rounded-lg p-4 space-y-2">
+              <div className="text-xs font-semibold text-accent-300">✓ Account created — share these with {createdAccount.email}</div>
+              <div className="bg-bg-soft border border-bg-border rounded p-3 font-mono text-xs space-y-1">
+                <div><span className="text-slate-500">URL:</span> <span className="text-slate-200">vametrix-cockpit.vercel.app/login</span></div>
+                <div><span className="text-slate-500">Email:</span> <span className="text-slate-200">{createdAccount.email}</span></div>
+                <div><span className="text-slate-500">Password:</span> <span className="text-accent-300 select-all">{createdAccount.password}</span></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={copyCredentials} className="px-3 py-1.5 text-[11px] rounded bg-bg-soft border border-bg-border hover:border-bg-borderhover">
+                  📋 Copy all
+                </button>
+                <button onClick={() => setCreatedAccount(null)} className="px-3 py-1.5 text-[11px] rounded bg-bg-soft border border-bg-border hover:border-bg-borderhover text-slate-400">
+                  ✕ Dismiss
+                </button>
+                <span className="text-[10px] text-amber-300 ml-2">⚠ This password is shown ONCE — copy it now.</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
