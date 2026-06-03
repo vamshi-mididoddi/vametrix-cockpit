@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { signOut } from '@/app/login/actions';
 
 export function UserMenu({ user }: { user: { email: string | null; full_name: string | null; role: string } }) {
@@ -28,12 +29,18 @@ export function UserMenu({ user }: { user: { email: string | null; full_name: st
               <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-semibold tracking-wider border ${roleClr}`}>{user.role}</span>
               <span className="text-[10px] text-slate-500">role</span>
             </div>
-            <form action={signOut} className="mt-3">
-              <button type="submit"
-                className="w-full px-3 py-1.5 text-xs rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20">
-                Sign out
-              </button>
-            </form>
+            <div className="mt-3 space-y-1.5">
+              <Link href="/profile" onClick={() => setOpen(false)}
+                className="block w-full text-center px-3 py-1.5 text-xs rounded-md bg-bg-soft text-slate-200 border border-bg-border hover:border-bg-borderhover">
+                Profile + change password
+              </Link>
+              <form action={signOut}>
+                <button type="submit"
+                  className="w-full px-3 py-1.5 text-xs rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20">
+                  Sign out
+                </button>
+              </form>
+            </div>
           </div>
         </>
       )}

@@ -1,6 +1,7 @@
 import { TopBar } from '@/components/topbar';
 import { AGENTS, STATUS_META, Agent } from '@/lib/agents';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCurrentUser } from '@/lib/auth';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
 
@@ -57,11 +58,14 @@ async function loadOverview() {
 }
 
 export default async function Page() {
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === 'admin';
   const data = await loadOverview();
 
   const liveAgents = AGENTS.filter(a => a.status === 'live').length;
   const parkedAgents = AGENTS.filter(a => a.status === 'parked').length;
   const plannedAgents = AGENTS.filter(a => a.status === 'planned').length;
+  const visibleAgents = isAdmin ? AGENTS : AGENTS.filter(a => a.status === 'live');
 
   return (
     <>
@@ -77,7 +81,11 @@ export default async function Page() {
             <KpiCard label="Total leads" value={String(data.total)} hint={`+${data.leadsToday} today`} />
             <KpiCard label="Hot + Qualified" value={String(data.stageCounts.hot + data.stageCounts.qualified)} hint={`${data.stageCounts.hot} hot · ${data.stageCounts.qualified} qualified`} accent />
             <KpiCard label="Pending escalation" value={String(data.stageCounts.escalate)} hint="requires human" warn />
-            <KpiCard label="Ad spend yesterday" value={fmtINR(data.spendYest)} hint={`${data.leadsYest} leads · CPL ${data.leadsYest > 0 ? fmtINR(data.spendYest / data.leadsYest) : '—'}`} />
+            {isAdmin ? (
+              <KpiCard label="Ad spend yesterday" value={fmtINR(data.spendYest)} hint={`${data.leadsYest} leads · CPL ${data.leadsYest > 0 ? fmtINR(data.spendYest / data.leadsYest) : '—'}`} />
+            ) : (
+              <KpiCard label="Engaged conversations" value={String(data.conv24h)} hint="last 24h" />
+            )}
           </div>
         )}
 
@@ -85,13 +93,15 @@ export default async function Page() {
           <div className="lg:col-span-2">
             <div className="flex items-end justify-between mb-3">
               <div>
-                <h2 className="text-sm font-semibold tracking-tight">Agent fleet</h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">{liveAgents} live · {parkedAgents} parked · {plannedAgents} planned</p>
+                <h2 className="text-sm font-semibold tracking-tight">{isAdmin ? 'Agent fleet' : 'Live agents'}</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {isAdmin ? `${liveAgents} live · ${parkedAgents} parked · ${plannedAgents} planned` : `${liveAgents} agents actively running for you`}
+                </p>
               </div>
-              <div className="text-[10px] text-slate-500 font-mono">{AGENTS.length} agents total</div>
+              {isAdmin && <div className="text-[10px] text-slate-500 font-mono">{AGENTS.length} agents total</div>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {AGENTS.map(a => <AgentCard key={a.id} agent={a} />)}
+              {visibleAgents.map(a => <AgentCard key={a.id} agent={a} />)}
             </div>
           </div>
 
