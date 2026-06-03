@@ -2,6 +2,7 @@ import { TopBar } from '@/components/topbar';
 import { STAGE_META, BRAND_LABEL } from '@/lib/agents';
 import { supabaseAdmin } from '@/lib/supabase';
 import Link from 'next/link';
+import { StageControl } from './stage-control';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -108,6 +109,9 @@ export default async function Page() {
                               {BRAND_LABEL[l.brand || ''] || l.brand || 'unknown'}
                             </span>
                             {l.language && <span className="text-[10px] text-slate-500">· {l.language}</span>}
+                            <span className="ml-auto">
+                              <StageControl phone={l.phone} currentStage={l.stage || 'new'} />
+                            </span>
                           </div>
                           {reason && <div className="mt-1.5 text-[10px] text-slate-500 line-clamp-2 leading-snug">{String(reason).slice(0, 140)}</div>}
                           {l.created_at && <div className="mt-1.5 text-[10px] text-slate-600">{timeAgo(l.created_at)} ago</div>}

@@ -1,5 +1,6 @@
 import { TopBar } from '@/components/topbar';
 import { supabaseAdmin } from '@/lib/supabase';
+import { SubmitTemplateForm } from './submit';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -52,9 +53,7 @@ export default async function Page() {
 
         <div className="mb-3 flex items-end justify-between">
           <h3 className="text-sm font-semibold">Template library</h3>
-          <button disabled className="px-3 py-1.5 text-xs rounded-md bg-accent-500/10 text-accent-400 border border-accent-500/30 opacity-60 cursor-not-allowed">
-            + New template (coming next session)
-          </button>
+          <SubmitTemplateForm />
         </div>
 
         <div className="bg-bg-card border border-bg-border rounded-lg overflow-hidden">

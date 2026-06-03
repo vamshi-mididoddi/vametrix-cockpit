@@ -2,6 +2,7 @@ import { TopBar } from '@/components/topbar';
 import { STAGE_META, BRAND_LABEL } from '@/lib/agents';
 import { supabaseAdmin } from '@/lib/supabase';
 import Link from 'next/link';
+import { ComposeBox } from './compose';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -173,16 +174,7 @@ export default async function Page({ searchParams }: { searchParams: { phone?: s
                 );
               })}
             </div>
-            <div className="border-t border-bg-border p-3 flex items-center gap-2">
-              <input
-                disabled
-                placeholder="Take over and type a reply… (auto-pauses agent — coming in V1)"
-                className="flex-1 bg-bg-soft border border-bg-border rounded-md px-3 py-2 text-sm placeholder:text-slate-600"
-              />
-              <button disabled className="px-4 py-2 text-xs rounded-md bg-accent-500/10 text-accent-400 border border-accent-500/30 opacity-60 cursor-not-allowed">
-                Send
-              </button>
-            </div>
+            {selectedPhone && <ComposeBox phone={selectedPhone} />}
           </div>
         </div>
       </div>
