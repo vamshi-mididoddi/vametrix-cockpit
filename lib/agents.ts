@@ -36,8 +36,11 @@ export const AGENTS: Agent[] = [
 ];
 
 export const INFRA = [
+  { id: 'leads',     label: 'Lead Pipeline',   icon: 'kanban-square', status: 'live' as AgentStatus },
+  { id: 'inbox',     label: 'WhatsApp Inbox',  icon: 'message-square', status: 'live' as AgentStatus },
+  { id: 'broadcast', label: 'Broadcast',       icon: 'megaphone', status: 'live' as AgentStatus },
+  { id: 'templates', label: 'WA Templates',    icon: 'file-text', status: 'live' as AgentStatus },
   { id: 'knowledge', label: 'Knowledge Base',  icon: 'book',     status: 'live' as AgentStatus },
-  { id: 'templates', label: 'WA Templates',    icon: 'message-square', status: 'partial' as AgentStatus },
   { id: 'workflows', label: 'Workflows (n8n)', icon: 'workflow', status: 'live' as AgentStatus },
   { id: 'cost',      label: 'Cost Monitor',    icon: 'wallet',   status: 'live' as AgentStatus },
   { id: 'team',      label: 'Team & Roles',    icon: 'users',    status: 'planned' as AgentStatus },
