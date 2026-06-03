@@ -4,7 +4,7 @@ import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   submitBrief, generateCreatives, approveAsset, approvePlan,
-  pushToMeta, activateLaunch, killLaunch,
+  pushToMeta, activateLaunch, killLaunch, oneClickCampaign,
 } from './actions';
 import { BRAND_LABEL } from '@/lib/agents';
 
@@ -80,6 +80,37 @@ export function MarketingClient({
         setGoal(''); setNotes('');
         setTimeout(() => router.refresh(), 1500);
       } else showFeedback(r.error || 'failed', true);
+    });
+  }
+
+  // Full one-click pipeline: brief → plan → creatives in a single orchestrated call.
+  // Synchronous — UI is locked for 60-180s while the LLM + image gen runs.
+  function doFullGenerate() {
+    if (!goal.trim() || goal.trim().length < 5) { showFeedback('Goal must be at least 5 chars', true); return; }
+    if (!confirm(
+      'This will generate the FULL campaign (strategy + funnel + creatives) in one shot.\n\n' +
+      'Takes 1-3 minutes. Don\'t close this tab.\n\nProceed?'
+    )) return;
+    startTransition(async () => {
+      showFeedback('Generating full campaign — strategy + creatives…');
+      const r = await oneClickCampaign({
+        goal: goal.trim(),
+        brand,
+        target_geo: geo || 'Pan-India',
+        target_persona: persona || undefined,
+        budget_inr_daily: dailyBudget === '' ? undefined : Number(dailyBudget),
+        budget_inr_total: totalBudget === '' ? undefined : Number(totalBudget),
+        timeline_days: days || 30,
+        notes: notes || undefined,
+      });
+      if (r.ok) {
+        const t = r.timings_ms;
+        const secs = t?.total ? Math.round(t.total / 1000) + 's' : '';
+        showFeedback(`Brief #${r.brief_id} · plan #${r.plan_id} · ${r.asset_count || 0} creatives ready ${secs}`);
+        setGoal(''); setNotes('');
+        if (r.brief_id) setSelectedBriefId(r.brief_id);
+        setTimeout(() => router.refresh(), 600);
+      } else showFeedback(r.error || 'orchestrator failed', true);
     });
   }
 
@@ -204,10 +235,21 @@ export function MarketingClient({
           <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (optional)…"
             className="mt-2 w-full bg-bg-soft border border-bg-border rounded px-3 py-1.5 text-xs placeholder:text-slate-600" />
 
-          <button onClick={doSubmit} disabled={pending || !goal.trim()}
-            className="mt-3 w-full px-4 py-2 text-sm rounded-md bg-accent-500/20 text-accent-300 border border-accent-500/40 hover:bg-accent-500/30 disabled:opacity-50">
-            {pending ? 'Working…' : '⚡ Plan strategy'}
-          </button>
+          <div className="mt-3 grid grid-cols-5 gap-2">
+            <button onClick={doSubmit} disabled={pending || !goal.trim()}
+              title="Just generate the strategy. You'll generate creatives separately afterwards."
+              className="col-span-2 px-3 py-2 text-xs rounded-md bg-bg-soft text-slate-300 border border-bg-border hover:bg-bg-cardhover disabled:opacity-50">
+              {pending ? '…' : 'Strategy only'}
+            </button>
+            <button onClick={doFullGenerate} disabled={pending || goal.trim().length < 5}
+              title="Generate the FULL campaign in one shot: strategy + funnel + creatives. Takes 1-3 min."
+              className="col-span-3 px-3 py-2 text-sm rounded-md bg-accent-500/20 text-accent-300 border border-accent-500/40 hover:bg-accent-500/30 disabled:opacity-50 font-medium">
+              {pending ? 'Generating…' : '🚀 Generate everything'}
+            </button>
+          </div>
+          <div className="mt-1.5 text-[10px] text-slate-600 text-center">
+            "Generate everything" runs strategist → creative factory automatically. Plan & assets land for review.
+          </div>
           {feedback && (
             <div className={`mt-2 text-[11px] ${feedback.startsWith('✓') ? 'text-accent-400' : 'text-rose-400'}`}>{feedback}</div>
           )}

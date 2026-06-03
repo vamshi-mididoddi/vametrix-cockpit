@@ -184,6 +184,68 @@ export async function killLaunch(campaign_id: string, reason: string): Promise<R
   }
 }
 
+// ---- One-click full campaign generation (brief → plan → creatives in one call) ----
+// Calls [VAMETRIX] 86 - Campaign Orchestrator which chains #87 + #88 internally.
+// Returns the complete package: brief_id, plan_id, plan, asset_ids, assets.
+// Synchronous — UI shows a spinner for ~60-180s while LLM + image gen runs.
+export async function oneClickCampaign(input: {
+  goal: string;
+  brand?: string;
+  target_geo?: string;
+  target_persona?: string;
+  budget_inr_daily?: number;
+  budget_inr_total?: number;
+  timeline_days?: number;
+  notes?: string;
+}): Promise<R> {
+  const u = await requireAdmin();
+  if (!input.goal?.trim() || input.goal.trim().length < 5) {
+    return { ok: false, error: 'Goal must be at least 5 characters.' };
+  }
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 240_000); // 4 min hard cap
+
+    const r = await fetch(`${N8N_BASE}/webhook/vametrix-86-orchestrate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal: input.goal.trim(),
+        brand: input.brand || 'mixed',
+        target_geo: input.target_geo || 'Pan-India',
+        target_persona: input.target_persona || null,
+        budget_inr_daily: input.budget_inr_daily || null,
+        budget_inr_total: input.budget_inr_total || null,
+        timeline_days: input.timeline_days || 30,
+        notes: input.notes || null,
+        submitted_by: u.id,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!r.ok) {
+      const t = await r.text().catch(() => '');
+      return { ok: false, error: `orchestrator http ${r.status}: ${t.slice(0, 300)}` };
+    }
+    const out = await r.json();
+    revalidatePath('/marketing');
+    return {
+      ok: !!out?.ok,
+      brief_id: out?.brief_id,
+      plan_id: out?.plan_id,
+      asset_count: Array.isArray(out?.assets) ? out.assets.length : 0,
+      timings_ms: out?.timings_ms || null,
+      error: out?.error,
+    };
+  } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      return { ok: false, error: 'Campaign generation timed out after 4 minutes. The plan/assets may still complete in background — refresh in a minute.' };
+    }
+    return { ok: false, error: String(e?.message || e) };
+  }
+}
+
 // ---- Run tech audit on-demand ----
 export async function runTechAudit(): Promise<R> {
   await requireAdmin();
