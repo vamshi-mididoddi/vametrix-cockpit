@@ -16,6 +16,7 @@
     "react-dom": "^18.3.1",
     "@supabase/supabase-js": "^2.46.1",
     "@supabase/ssr": "^0.5.2",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "lucide-react": "^0.460.0",
     "clsx": "^2.1.1"
   },

@@ -4,10 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AGENTS, INFRA, STATUS_META } from '@/lib/agents';
 import * as Icons from 'lucide-react';
-import { Search, LayoutDashboard } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 function Icon({ name, className }: { name: string; className?: string }) {
-  // Convert kebab-case to PascalCase to look up in lucide-react
   const pascal = name.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase());
   const C = (Icons as any)[pascal] ?? Icons.Square;
   return <C className={className} strokeWidth={1.75} />;
@@ -18,16 +17,26 @@ interface Group {
   items: { id: string; label: string; href: string; icon: string; status?: string; num?: number }[];
 }
 
-export function Sidebar() {
+// Pages visible to team members
+const TEAM_VISIBLE_INFRA = new Set(['leads', 'inbox', 'broadcast', 'reminders', 'templates']);
+
+export function Sidebar({ role }: { role: 'admin' | 'team' }) {
   const pathname = usePathname() || '';
+  const isAdmin = role === 'admin';
+
+  const infra = INFRA.filter(i => isAdmin || TEAM_VISIBLE_INFRA.has(i.id));
 
   const groups: Group[] = [
     { title: '', items: [{ id: 'overview', label: 'Engine Overview', href: '/', icon: 'layout-dashboard' }] },
-    { title: 'Sales & Marketing', items: AGENTS.filter(a => a.fleet === 'Sales & Marketing').map(a => ({ id: a.id, label: a.name, href: `/${a.id}`, icon: a.icon, status: a.status, num: a.num })) },
-    { title: 'Operations', items: AGENTS.filter(a => a.fleet === 'Operations').map(a => ({ id: a.id, label: a.name, href: `/${a.id}`, icon: a.icon, status: a.status, num: a.num })) },
-    { title: 'Intelligence', items: AGENTS.filter(a => a.fleet === 'Intelligence').map(a => ({ id: a.id, label: a.name, href: `/${a.id}`, icon: a.icon, status: a.status, num: a.num })) },
-    { title: 'Infrastructure', items: INFRA.map(i => ({ id: i.id, label: i.label, href: `/${i.id}`, icon: i.icon, status: i.status })) },
   ];
+  if (isAdmin) {
+    groups.push(
+      { title: 'Sales & Marketing', items: AGENTS.filter(a => a.fleet === 'Sales & Marketing').map(a => ({ id: a.id, label: a.name, href: `/${a.id}`, icon: a.icon, status: a.status, num: a.num })) },
+      { title: 'Operations', items: AGENTS.filter(a => a.fleet === 'Operations').map(a => ({ id: a.id, label: a.name, href: `/${a.id}`, icon: a.icon, status: a.status, num: a.num })) },
+      { title: 'Intelligence', items: AGENTS.filter(a => a.fleet === 'Intelligence').map(a => ({ id: a.id, label: a.name, href: `/${a.id}`, icon: a.icon, status: a.status, num: a.num })) },
+    );
+  }
+  groups.push({ title: 'Infrastructure', items: infra.map(i => ({ id: i.id, label: i.label, href: `/${i.id}`, icon: i.icon, status: i.status })) });
 
   return (
     <aside className="w-64 bg-bg-soft border-r border-bg-border flex flex-col shrink-0 h-screen">
@@ -36,7 +45,7 @@ export function Sidebar() {
           <div className="w-8 h-8 rounded-md bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-sm shrink-0">V</div>
           <div className="min-w-0">
             <div className="text-sm font-semibold tracking-tight truncate">Vametrix Engine</div>
-            <div className="text-[10px] text-slate-500 truncate font-mono">befach · v0.6</div>
+            <div className="text-[10px] text-slate-500 truncate font-mono">befach · v0.7 · {role}</div>
           </div>
         </div>
       </div>

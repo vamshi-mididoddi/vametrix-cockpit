@@ -1,8 +1,9 @@
-'use client';
-
 import { Bell } from 'lucide-react';
+import { UserMenu } from './user-menu';
+import { getCurrentUser } from '@/lib/auth';
 
-export function TopBar({ title, breadcrumb }: { title: string; breadcrumb?: string }) {
+export async function TopBar({ title, breadcrumb }: { title: string; breadcrumb?: string }) {
+  const user = await getCurrentUser();
   return (
     <header className="bg-bg-soft border-b border-bg-border px-6 py-3 flex items-center gap-4 shrink-0">
       <div className="flex-1 min-w-0">
@@ -21,7 +22,11 @@ export function TopBar({ title, breadcrumb }: { title: string; breadcrumb?: stri
         <button className="w-8 h-8 rounded-md bg-bg-card border border-bg-border flex items-center justify-center hover:border-bg-borderhover relative">
           <Bell className="w-4 h-4 text-slate-400" strokeWidth={1.75} />
         </button>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white text-xs font-semibold">U</div>
+        {user ? (
+          <UserMenu user={{ email: user.email, full_name: user.full_name, role: user.role }} />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 text-xs">?</div>
+        )}
       </div>
     </header>
   );
