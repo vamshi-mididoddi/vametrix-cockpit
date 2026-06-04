@@ -37,13 +37,15 @@ export async function inviteUser(email: string, fullName: string, role: 'admin' 
       user_metadata: { full_name: fullName || email },
     });
     if (error) return { ok: false, error: error.message };
-    // Set role on the auto-created profile
+    // Set role + inherit admin's tenant_id on the auto-created profile.
+    // (Falls back to Befach tenant via column DEFAULT if column doesn't exist yet.)
     if (data?.user?.id) {
       await supa.from('user_profiles').upsert({
         id: data.user.id,
         role,
         full_name: fullName || email,
-      });
+        tenant_id: u.tenant_id,
+      } as any);
     }
     return { ok: true, temp_password: tempPassword, email };
   } catch (e: any) {

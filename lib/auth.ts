@@ -1,13 +1,20 @@
 import { createServerSupabase } from './supabase-auth';
 import { redirect } from 'next/navigation';
 
-export type UserRole = 'admin' | 'team';
+export type UserRole = 'admin' | 'team' | 'master_admin';
+
+// Befach's tenant_id, hardcoded fallback while we're single-tenant.
+// When client #2 signs, this fallback is removed and tenant_id MUST come from user_profiles.
+export const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-befac0000001';
 
 export interface AuthedUser {
   id: string;
   email: string | null;
   full_name: string | null;
   role: UserRole;
+  tenant_id: string;          // never null — falls back to DEFAULT_TENANT_ID
+  tenant_slug?: string;       // e.g. 'befach_international'
+  tenant_name?: string;       // e.g. 'Befach International'
 }
 
 export async function getCurrentUser(): Promise<AuthedUser | null> {
@@ -17,14 +24,25 @@ export async function getCurrentUser(): Promise<AuthedUser | null> {
     if (!user) return null;
     const { data: profile } = await supa
       .from('user_profiles')
-      .select('role,full_name')
+      .select('role,full_name,tenant_id')
       .eq('id', user.id)
       .maybeSingle();
+    const tenant_id = (profile as any)?.tenant_id || DEFAULT_TENANT_ID;
+    // Resolve tenant slug + name (light query, cached at request edge by Next)
+    let tenant_slug: string | undefined;
+    let tenant_name: string | undefined;
+    try {
+      const { data: t } = await supa.from('tenants').select('slug,name').eq('id', tenant_id).maybeSingle();
+      if (t) { tenant_slug = (t as any).slug; tenant_name = (t as any).name; }
+    } catch { /* tenants table may not exist yet */ }
     return {
       id: user.id,
       email: user.email || null,
       full_name: profile?.full_name || user.email || null,
       role: (profile?.role as UserRole) || 'team',
+      tenant_id,
+      tenant_slug,
+      tenant_name,
     };
   } catch {
     return null;
