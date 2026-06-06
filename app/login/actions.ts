@@ -14,17 +14,10 @@ export async function signIn(email: string, password: string, next: string): Pro
     const { data, error } = await supa.auth.signInWithPassword({ email, password });
     if (error) return { ok: false, error: error.message };
 
-    // Smart post-login redirect — sales team lands on their work
-    let redirectTo = next || '/';
-    if (data?.user?.id && (next === '/' || !next)) {
-      try {
-        const admin = supabaseAdmin();
-        const { data: profile } = await admin.from('user_profiles').select('role').eq('id', data.user.id).maybeSingle();
-        if ((profile as any)?.role === 'team') {
-          redirectTo = '/leads?view=mine';
-        }
-      } catch { /* fall through to default */ }
-    }
+    // Post-login redirect. If they were heading somewhere specific, honour it;
+    // otherwise everyone lands on /dashboard (which renders role-aware: admin
+    // sees Engine Overview, team sees My Today).
+    let redirectTo = (next && next !== '/' && !next.startsWith('/login')) ? next : '/dashboard';
 
     revalidatePath('/', 'layout');
     return { ok: true, redirect_to: redirectTo };

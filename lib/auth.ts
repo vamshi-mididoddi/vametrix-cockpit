@@ -60,7 +60,7 @@ export async function requireAuth(): Promise<AuthedUser> {
 
 export async function requireAdmin(): Promise<AuthedUser> {
   const u = await requireAuth();
-  if (u.role !== 'admin') redirect('/?forbidden=1');
+  if (u.role !== 'admin' && u.role !== 'master_admin') redirect('/dashboard?forbidden=1');
   return u;
 }
 

@@ -14,7 +14,7 @@ export default async function Page({ params }: { params: { slug: string } }) {
   // Enforce admin gate for admin-only paths
   if (isAdminOnlyPath('/' + params.slug)) {
     const user = await getCurrentUser();
-    if (!user || user.role !== 'admin') redirect('/?forbidden=' + params.slug);
+    if (!user || (user.role !== 'admin' && user.role !== 'master_admin')) redirect('/dashboard?forbidden=' + params.slug);
   }
 
   const agent = AGENTS.find(a => a.id === params.slug);

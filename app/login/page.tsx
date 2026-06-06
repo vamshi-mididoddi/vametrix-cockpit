@@ -6,7 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function LoginPage({ searchParams }: { searchParams: { next?: string; error?: string } }) {
   const u = await getCurrentUser();
-  if (u) redirect(searchParams.next || '/');
+  if (u) {
+    const next = searchParams.next;
+    redirect(next && next !== '/' && !next.startsWith('/login') ? next : '/dashboard');
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg p-6 relative overflow-hidden">
       {/* Ambient backgrounds */}
