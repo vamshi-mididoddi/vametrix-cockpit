@@ -1,23 +1,39 @@
 'use server';
 
 import { createServerSupabase } from '@/lib/supabase-auth';
+import { supabaseAdmin } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
-export async function signIn(email: string, password: string, next: string): Promise<{ ok: boolean; error?: string }> {
+type R = { ok: boolean; error?: string; redirect_to?: string };
+
+export async function signIn(email: string, password: string, next: string): Promise<R> {
   if (!email || !password) return { ok: false, error: 'email and password required' };
   try {
     const supa = createServerSupabase();
-    const { error } = await supa.auth.signInWithPassword({ email, password });
+    const { data, error } = await supa.auth.signInWithPassword({ email, password });
     if (error) return { ok: false, error: error.message };
+
+    // Smart post-login redirect — sales team lands on their work
+    let redirectTo = next || '/';
+    if (data?.user?.id && (next === '/' || !next)) {
+      try {
+        const admin = supabaseAdmin();
+        const { data: profile } = await admin.from('user_profiles').select('role').eq('id', data.user.id).maybeSingle();
+        if ((profile as any)?.role === 'team') {
+          redirectTo = '/leads?view=mine';
+        }
+      } catch { /* fall through to default */ }
+    }
+
     revalidatePath('/', 'layout');
-    return { ok: true };
+    return { ok: true, redirect_to: redirectTo };
   } catch (e: any) {
     return { ok: false, error: String(e?.message || e) };
   }
 }
 
-export async function signUp(email: string, password: string, fullName: string): Promise<{ ok: boolean; error?: string }> {
+export async function signUp(email: string, password: string, fullName: string): Promise<R> {
   if (!email || !password) return { ok: false, error: 'email and password required' };
   try {
     const supa = createServerSupabase();
