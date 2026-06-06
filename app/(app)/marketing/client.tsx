@@ -351,12 +351,17 @@ function Empty({ children }: { children: any }) {
 }
 
 function PlanView({ plan, onApprove, onGenerateCreatives, onPushToMeta }: { plan: any; onApprove: () => void; onGenerateCreatives: (n?: number) => void; onPushToMeta: () => void }) {
-  const funnel = plan.funnel || {};
-  const cb = plan.creative_brief || {};
-  const kpi = plan.projected_kpis || {};
-  const bb = plan.budget_breakdown || {};
-  const tc = plan.tech_checklist || [];
-  const cs = plan.campaign_structure || [];
+  // Defensive: JSONB fields may be objects/strings/null depending on what the
+  // LLM returned. Never call .map on a non-array.
+  const arr = (x: any) => (Array.isArray(x) ? x : []);
+  const obj = (x: any) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+  const funnel = obj(plan.funnel);
+  const cb = obj(plan.creative_brief);
+  const kpi = obj(plan.projected_kpis);
+  const bb = obj(plan.budget_breakdown);
+  const tc = arr(plan.tech_checklist);
+  const cs = arr(plan.campaign_structure);
+  const risks = arr(plan.risks);
   const isApproved = plan.approval_status === 'approved';
 
   return (
@@ -430,9 +435,9 @@ function PlanView({ plan, onApprove, onGenerateCreatives, onPushToMeta }: { plan
           {cs.map((c: any, i: number) => (
             <div key={i} className="bg-bg-soft border border-bg-border rounded p-2">
               <div className="text-xs font-medium">{c.name} <span className="text-[10px] text-slate-500">({c.objective}, {c.budget_strategy || 'ABO'}, ₹{c.daily_budget_inr || 0}/d, {c.stage || 'MOFU'})</span></div>
-              {(c.ad_sets || []).map((as: any, j: number) => (
+              {arr(c.ad_sets).map((as: any, j: number) => (
                 <div key={j} className="text-[10px] text-slate-500 mt-1 pl-3 border-l border-bg-border">
-                  ↳ {as.name} · {as.audience} · {(as.placements || []).join('+')} · ₹{as.daily_budget_inr || 0}/d · {as.creatives_count || 0} creatives
+                  ↳ {as.name} · {as.audience} · {arr(as.placements).join('+')} · ₹{as.daily_budget_inr || 0}/d · {as.creatives_count || 0} creatives
                 </div>
               ))}
             </div>
@@ -440,10 +445,10 @@ function PlanView({ plan, onApprove, onGenerateCreatives, onPushToMeta }: { plan
         </div>
       </Section>
 
-      {(plan.risks || []).length > 0 && (
+      {risks.length > 0 && (
         <Section title="Risks">
           <div className="col-span-2 space-y-1">
-            {plan.risks.map((r: any, i: number) => (
+            {risks.map((r: any, i: number) => (
               <div key={i} className="text-[11px]">
                 <span className="text-amber-400">⚠ </span>
                 <span className="text-slate-300">{r.risk}</span>

@@ -175,7 +175,7 @@ export default async function Page({ searchParams }: { searchParams?: { view?: s
                                   'bg-slate-700/30 text-slate-400'
                                 }`}>{l.priority}</span>
                               )}
-                              <span className="ml-auto" onClick={(e) => e.preventDefault()}>
+                              <span className="ml-auto">
                                 <StageControl phone={l.phone} currentStage={l.stage || 'new'} />
                               </span>
                             </div>
