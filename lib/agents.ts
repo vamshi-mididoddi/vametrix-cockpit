@@ -36,6 +36,7 @@ export const AGENTS: Agent[] = [
 ];
 
 export const INFRA = [
+  { id: 'ceo',       label: 'VAMETRIX CEO',    icon: 'shield',   status: 'live' as AgentStatus },
   { id: 'leads',     label: 'Lead Pipeline',   icon: 'kanban-square', status: 'live' as AgentStatus },
   { id: 'inbox',     label: 'WhatsApp Inbox',  icon: 'message-square', status: 'live' as AgentStatus },
   { id: 'broadcast', label: 'Broadcast',       icon: 'megaphone', status: 'live' as AgentStatus },

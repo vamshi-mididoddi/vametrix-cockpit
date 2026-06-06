@@ -64,7 +64,7 @@ export async function requireAdmin(): Promise<AuthedUser> {
 // Routes only admin can visit (paths startsWith)
 export const ADMIN_ONLY_PATHS = [
   '/cost', '/settings', '/audit', '/opt-outs', '/workflows', '/knowledge',
-  '/marketing', '/tech-audit', '/brands',
+  '/marketing', '/tech-audit', '/brands', '/ceo',
   '/agent-2','/agent-3','/agent-4','/agent-5','/agent-6','/agent-7','/agent-8','/agent-9',
   '/agent-10','/agent-11','/agent-12','/agent-13','/agent-14','/agent-15','/agent-16',
 ];
