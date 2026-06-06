@@ -207,7 +207,7 @@ async function loadAdminOverview(tenantId: string) {
       { data: ads }, { data: adsCompare }, { data: recentActivity },
       { data: engineHealth }, { data: pipelineSummary }, { data: latestDigest },
     ] = await Promise.all([
-      supa.from('leads_log').select('stage, created_at, score, phone, status, deal_value_inr, won_at').eq('tenant_id', tenantId),
+      supa.from('leads_log').select('stage, created_at, score, phone, status, deal_value_inr, won_at').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(1000),
       supa.from('conversations').select('id, created_at, direction').eq('tenant_id', tenantId).gte('created_at', new Date(Date.now() - 86400000).toISOString()),
       supa.from('perf_decisions').select('*').eq('approval_status', 'pending').order('decided_at', { ascending: false }).limit(5),
       supa.from('ad_campaigns_log').select('spend_inr, leads, campaign_name').eq('snapshot_date', yest),

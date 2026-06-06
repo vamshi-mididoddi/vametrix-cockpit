@@ -8,6 +8,7 @@
 
 import { supabaseAdmin } from './supabase';
 import { getCurrentUser, DEFAULT_TENANT_ID } from './auth';
+import { cache } from 'react';
 
 export interface Tenant {
   id: string;
@@ -25,18 +26,19 @@ export interface Tenant {
 }
 
 // ---- Current tenant (from logged-in user) ----
-export async function getCurrentTenantId(): Promise<string> {
+// React.cache → calls dedupe within a single request.
+export const getCurrentTenantId = cache(async (): Promise<string> => {
   const u = await getCurrentUser();
   return u?.tenant_id || DEFAULT_TENANT_ID;
-}
+});
 
-export async function getCurrentTenant(): Promise<Tenant | null> {
+export const getCurrentTenant = cache(async (): Promise<Tenant | null> => {
   const tenantId = await getCurrentTenantId();
   return getTenantById(tenantId);
-}
+});
 
 // ---- Tenant lookups (use admin client — bypasses RLS) ----
-export async function getTenantById(id: string): Promise<Tenant | null> {
+export const getTenantById = cache(async (id: string): Promise<Tenant | null> => {
   try {
     const supa = supabaseAdmin();
     const { data } = await supa.from('tenants').select('*').eq('id', id).maybeSingle();
@@ -44,7 +46,7 @@ export async function getTenantById(id: string): Promise<Tenant | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
   try {

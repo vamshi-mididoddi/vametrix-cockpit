@@ -1,5 +1,6 @@
 import { createServerSupabase } from './supabase-auth';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
 export type UserRole = 'admin' | 'team' | 'master_admin';
 
@@ -17,7 +18,9 @@ export interface AuthedUser {
   tenant_name?: string;       // e.g. 'Befach International'
 }
 
-export async function getCurrentUser(): Promise<AuthedUser | null> {
+// Wrapped with React.cache so multiple calls per request hit Supabase only ONCE.
+// This deduplicates calls from layout.tsx + topbar + each page component.
+export const getCurrentUser = cache(async (): Promise<AuthedUser | null> => {
   try {
     const supa = createServerSupabase();
     const { data: { user } } = await supa.auth.getUser();
@@ -47,7 +50,7 @@ export async function getCurrentUser(): Promise<AuthedUser | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireAuth(): Promise<AuthedUser> {
   const u = await getCurrentUser();
