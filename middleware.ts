@@ -1,16 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-// PUBLIC routes anyone (logged in or not) can visit:
-//   /         → marketing landing page
-//   /login    → sign in page
-//   /auth/*   → Supabase auth callbacks
-//   /_next/*  → Next.js static assets
-//   /favicon  → favicon
-//   Static asset extensions
+// PUBLIC routes anyone can visit (no auth check):
 const PUBLIC_PATHS = ['/login', '/auth', '/_next', '/favicon'];
-
-// Anchor links + assets that should not be guarded
 const PUBLIC_EXACT = new Set(['/']);
 
 function isPublic(pathname: string): boolean {
@@ -18,40 +10,48 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some(p => pathname.startsWith(p));
 }
 
+function toLogin(req: NextRequest) {
+  const url = req.nextUrl.clone();
+  url.pathname = '/login';
+  url.searchParams.set('next', req.nextUrl.pathname);
+  return NextResponse.redirect(url);
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Skip middleware for public paths entirely — they render without auth check
+  // Public paths render without any auth check
   if (isPublic(pathname)) {
     return NextResponse.next();
   }
 
-  let res = NextResponse.next();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return req.cookies.get(name)?.value; },
-        set(name: string, value: string, options: any) {
-          res.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: any) {
-          res.cookies.set({ name, value: '', ...options });
-        },
-      },
-    }
-  );
+  const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
+  // If Supabase env isn't available to the middleware, never crash — just
+  // send the visitor to /login (which will surface a clear config error).
+  if (!SUPA_URL || !SUPA_ANON) {
+    return toLogin(req);
   }
 
+  let res = NextResponse.next();
+  let user = null;
+  try {
+    const supabase = createServerClient(SUPA_URL, SUPA_ANON, {
+      cookies: {
+        get(name: string) { return req.cookies.get(name)?.value; },
+        set(name: string, value: string, options: any) { res.cookies.set({ name, value, ...options }); },
+        remove(name: string, options: any) { res.cookies.set({ name, value: '', ...options }); },
+      },
+    });
+    const { data } = await supabase.auth.getUser();
+    user = data?.user ?? null;
+  } catch {
+    // Auth lookup failed for any reason → treat as logged out, don't crash.
+    return toLogin(req);
+  }
+
+  if (!user) return toLogin(req);
   return res;
 }
 
