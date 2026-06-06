@@ -2,6 +2,7 @@ import { TopBar } from '@/components/topbar';
 import { AGENTS, STATUS_META, Agent, BRAND_LABEL } from '@/lib/agents';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getCurrentUser } from '@/lib/auth';
+import { LandingPage } from '@/components/landing/landing';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
 
@@ -358,16 +359,7 @@ export default async function Page() {
   const role = user?.role === 'master_admin' ? 'admin' : user?.role;
 
   if (!user) {
-    return (
-      <>
-        <TopBar title="Vametrix Engine" />
-        <div className="flex-1 flex items-center justify-center bg-bg p-6">
-          <Link href="/login" className="px-6 py-3 rounded bg-accent-500/15 text-accent-300 border border-accent-500/30">
-            Sign in →
-          </Link>
-        </div>
-      </>
-    );
+    return <LandingPage />;
   }
 
   if (role === 'team') {
