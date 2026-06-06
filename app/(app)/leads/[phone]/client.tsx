@@ -96,9 +96,9 @@ export function LeadDetailClient({
   }
 
   return (
-    <div className="max-w-[1500px] grid grid-cols-12 gap-5">
+    <div className="max-w-[1500px] grid grid-cols-1 lg:grid-cols-12 gap-5">
       {/* LEFT: lead summary + actions */}
-      <div className="col-span-4 space-y-4">
+      <div className="lg:col-span-4 space-y-4">
         <Link href="/leads" className="text-[11px] text-slate-500 hover:text-slate-300">← Pipeline</Link>
 
         <div className={`bg-bg-card border rounded-lg p-5 ${isHot ? 'border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.15)]' : 'border-bg-border'}`}>
@@ -248,7 +248,7 @@ export function LeadDetailClient({
       </div>
 
       {/* RIGHT: timeline + note input + conversation */}
-      <div className="col-span-8 space-y-4">
+      <div className="lg:col-span-8 space-y-4">
         {/* Add note */}
         <div className="bg-bg-card border border-bg-border rounded-lg p-4">
           <div className="text-xs font-semibold mb-2">Log activity / add note</div>

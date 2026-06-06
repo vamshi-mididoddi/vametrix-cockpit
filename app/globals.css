@@ -247,3 +247,30 @@ h1, h2, h3 { letter-spacing: -0.015em; }
   color: transparent;
 }
 
+/* ====================================================
+   Mobile responsiveness helpers
+   ==================================================== */
+/* On small screens, any card that wraps a table lets it scroll sideways
+   instead of clipping. Pairs with the overflow-hidden cards. */
+@media (max-width: 768px) {
+  table { width: 100%; }
+  /* Allow horizontal scroll on table containers */
+  .overflow-hidden:has(> table),
+  .overflow-hidden:has(table) {
+    overflow-x: auto;
+  }
+  /* Tighten default page padding on phones */
+  .p-6 { padding: 1rem; }
+}
+
+/* Respect iOS safe areas (notch) */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Prevent horizontal page scroll anywhere */
+html, body { max-width: 100%; overflow-x: hidden; }
+

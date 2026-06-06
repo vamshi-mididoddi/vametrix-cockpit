@@ -174,9 +174,9 @@ export function MarketingClient({
   }
 
   return (
-    <div className="max-w-[1600px] grid grid-cols-12 gap-5">
+    <div className="max-w-[1600px] grid grid-cols-1 lg:grid-cols-12 gap-5">
       {/* Top KPI bar */}
-      <div className="col-span-12 grid grid-cols-5 gap-3">
+      <div className="lg:col-span-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <Kpi label="Active briefs" value={String(briefs.filter(b => !['done','cancelled'].includes(b.status)).length)} />
         <Kpi label="Plans awaiting" value={String(plans.filter(p => p.approval_status === 'pending').length)} accent />
         <Kpi label="Assets pending review" value={String(assets.filter(a => a.approval_status === 'pending').length)} />
@@ -185,7 +185,7 @@ export function MarketingClient({
       </div>
 
       {/* LEFT: brief intake + brief list */}
-      <div className="col-span-4 space-y-5">
+      <div className="lg:col-span-4 space-y-5">
         <div className="bg-bg-card border border-bg-border rounded-lg p-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-md bg-accent-500/15 flex items-center justify-center text-accent-300">⚡</div>
@@ -291,7 +291,7 @@ export function MarketingClient({
       </div>
 
       {/* RIGHT: plan view + creatives + launches */}
-      <div className="col-span-8 space-y-5">
+      <div className="lg:col-span-8 space-y-5">
         {!selectedBriefId ? (
           <Empty>Select or submit a brief on the left to see its strategy.</Empty>
         ) : !planForBrief ? (

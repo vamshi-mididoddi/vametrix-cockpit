@@ -102,7 +102,7 @@ export function TeamClient({ initialUsers }: { initialUsers: U[] }) {
 
       {showInvite && (
         <div className="bg-bg-card border border-bg-border rounded-lg p-5 mb-4">
-          <div className="grid grid-cols-3 gap-3 mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
               <label className="text-[10px] uppercase text-slate-500 tracking-wider">Email</label>
               <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="teammate@befach.com"
