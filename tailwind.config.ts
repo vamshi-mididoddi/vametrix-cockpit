@@ -16,11 +16,11 @@ const config: Config = {
       colors: {
         // Refined dark palette — Linear/Vercel inspired
         bg: {
-          DEFAULT:     '#0a0a0b',
-          soft:        '#0f0f11',
-          card:        '#141417',
-          cardhover:   '#1a1a1f',
-          subtle:      '#0c0c0e',
+          DEFAULT:     '#0a0a0a',
+          soft:        '#0f0f0f',
+          card:        '#141414',
+          cardhover:   '#1a1a1a',
+          subtle:      '#0c0c0c',
           border:      'rgba(255, 255, 255, 0.06)',
           borderhover: 'rgba(255, 255, 255, 0.12)',
         },
@@ -34,6 +34,16 @@ const config: Config = {
           600: '#059669',
           700: '#047857',
         },
+        // vametrix.com brand colors — neon purple + cyan on charcoal
+        brand: {
+          dark:   '#0a0a0a',
+          purple: '#bc13fe',
+          cyan:   '#00f0ff',
+          gray:   '#1f1f1f',
+        },
+      },
+      backgroundImage: {
+        'grid-pattern': 'linear-gradient(to right, #1f1f1f 1px, transparent 1px), linear-gradient(to bottom, #1f1f1f 1px, transparent 1px)',
       },
       borderRadius: {
         'md': '10px',
