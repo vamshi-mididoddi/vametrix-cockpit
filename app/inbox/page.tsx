@@ -3,6 +3,7 @@ import { STAGE_META, BRAND_LABEL } from '@/lib/agents';
 import { supabaseAdmin } from '@/lib/supabase';
 import Link from 'next/link';
 import { ComposeBox } from './compose';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -99,6 +100,8 @@ function statusIndicator(status: string | undefined) {
 }
 
 export default async function Page({ searchParams }: { searchParams: { phone?: string } }) {
+  await requireAuth();
+
   const { threadList, leadByPhone, selectedPhone, selectedMsgs, selectedLead, statusByMsgId } = await loadThreads(searchParams.phone);
 
   return (

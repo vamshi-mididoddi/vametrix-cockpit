@@ -1,6 +1,7 @@
 import { TopBar } from '@/components/topbar';
 import { supabaseAdmin } from '@/lib/supabase';
 import { SubmitTemplateForm } from './submit';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -74,6 +75,8 @@ function pct(num: number, den: number) {
 }
 
 export default async function Page() {
+  await requireAuth();
+
   const { tpls, perf } = await loadTemplates();
   const approved = tpls.filter(t => t.status === 'APPROVED').length;
   const pending = tpls.filter(t => t.status === 'PENDING').length;

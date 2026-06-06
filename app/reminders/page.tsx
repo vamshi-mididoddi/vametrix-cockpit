@@ -1,6 +1,7 @@
 import { TopBar } from '@/components/topbar';
 import { supabaseAdmin } from '@/lib/supabase';
 import { RemindersClient } from './client';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -16,6 +17,8 @@ async function load() {
 }
 
 export default async function Page() {
+  await requireAuth();
+
   const reminders = await load();
   return (
     <>
