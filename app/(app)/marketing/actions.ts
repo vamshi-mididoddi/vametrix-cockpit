@@ -206,47 +206,44 @@ export async function oneClickCampaign(input: {
   if (!input.goal?.trim() || input.goal.trim().length < 5) {
     return { ok: false, error: 'Goal must be at least 5 characters.' };
   }
+  // The orchestrator runs the full strategist + creative-factory chain (~2-3 min)
+  // SERVER-SIDE in n8n. A Vercel server action can't block that long (function
+  // time limit), so we KICK IT OFF and return "generating" immediately. n8n keeps
+  // running after we disconnect; the plan + creatives appear on /marketing as they
+  // finish. This is the reliable pattern for long background work behind a webhook.
+  const payload = JSON.stringify({
+    goal: input.goal.trim(),
+    brand: input.brand || 'mixed',
+    vertical: input.vertical || null,
+    target_geo: input.target_geo || 'Pan-India',
+    target_persona: input.target_persona || null,
+    budget_inr_daily: input.budget_inr_daily || null,
+    budget_inr_total: input.budget_inr_total || null,
+    timeline_days: input.timeline_days || 30,
+    notes: input.notes || null,
+    submitted_by: u.id,
+  });
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 240_000); // 4 min hard cap
-
-    const r = await fetch(`${N8N_BASE}/webhook/vametrix-86-orchestrate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        goal: input.goal.trim(),
-        brand: input.brand || 'mixed',
-        vertical: input.vertical || null,
-        target_geo: input.target_geo || 'Pan-India',
-        target_persona: input.target_persona || null,
-        budget_inr_daily: input.budget_inr_daily || null,
-        budget_inr_total: input.budget_inr_total || null,
-        timeline_days: input.timeline_days || 30,
-        notes: input.notes || null,
-        submitted_by: u.id,
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (!r.ok) {
-      const t = await r.text().catch(() => '');
-      return { ok: false, error: `orchestrator http ${r.status}: ${t.slice(0, 300)}` };
+    const timeoutId = setTimeout(() => controller.abort(), 12_000); // just confirm it started
+    try {
+      const r = await fetch(`${N8N_BASE}/webhook/vametrix-86-orchestrate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      // Rare: if it finished fast with a full body, surface it directly.
+      const out = await r.json().catch(() => null);
+      if (out && out.ok && out.plan_id) {
+        revalidatePath('/marketing');
+        return { ok: true, brief_id: out.brief_id, plan_id: out.plan_id, asset_count: Array.isArray(out.assets) ? out.assets.length : 0 };
+      }
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      if (e?.name !== 'AbortError') throw e; // AbortError = expected (still running server-side)
     }
-    const out = await r.json();
     revalidatePath('/marketing');
-    return {
-      ok: !!out?.ok,
-      brief_id: out?.brief_id,
-      plan_id: out?.plan_id,
-      asset_count: Array.isArray(out?.assets) ? out.assets.length : 0,
-      timings_ms: out?.timings_ms || null,
-      error: out?.error,
-    };
+    return { ok: true, generating: true, message: 'Campaign is generating — strategy + creatives take ~2-3 min. They will appear below; refresh shortly.' };
   } catch (e: any) {
-    if (e?.name === 'AbortError') {
-      return { ok: false, error: 'Campaign generation timed out after 4 minutes. The plan/assets may still complete in background — refresh in a minute.' };
-    }
     return { ok: false, error: String(e?.message || e) };
   }
 }

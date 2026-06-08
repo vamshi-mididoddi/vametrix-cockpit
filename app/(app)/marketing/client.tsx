@@ -85,16 +85,16 @@ export function MarketingClient({
     });
   }
 
-  // Full one-click pipeline: brief → plan → creatives in a single orchestrated call.
-  // Synchronous — UI is locked for 60-180s while the LLM + image gen runs.
+  // Full one-click pipeline: brief → plan → creatives. Kicks off the orchestrator
+  // (which runs ~2-3 min server-side) and returns immediately; results stream in.
   function doFullGenerate() {
     if (!goal.trim() || goal.trim().length < 5) { showFeedback('Goal must be at least 5 chars', true); return; }
     if (!confirm(
-      'This will generate the FULL campaign (strategy + funnel + creatives) in one shot.\n\n' +
-      'Takes 1-3 minutes. Don\'t close this tab.\n\nProceed?'
+      'This will generate the FULL campaign (strategy + funnel + creatives).\n\n' +
+      'It runs in the background (~2-3 min) — you can keep working; the plan and creatives appear below as they finish.\n\nProceed?'
     )) return;
     startTransition(async () => {
-      showFeedback('Generating full campaign — strategy + creatives…');
+      showFeedback('Kicking off — strategy + creatives generating…');
       const r = await oneClickCampaign({
         goal: goal.trim(),
         brand,
@@ -106,10 +106,15 @@ export function MarketingClient({
         timeline_days: days || 30,
         notes: notes || undefined,
       });
-      if (r.ok) {
-        const t = r.timings_ms;
-        const secs = t?.total ? Math.round(t.total / 1000) + 's' : '';
-        showFeedback(`Brief #${r.brief_id} · plan #${r.plan_id} · ${r.asset_count || 0} creatives ready ${secs}`);
+      if (r.ok && r.generating) {
+        showFeedback('✓ ' + (r.message || 'Generating — the plan + creatives will appear below in ~2-3 min.'));
+        setGoal(''); setNotes('');
+        // auto-refresh as the background job completes
+        setTimeout(() => router.refresh(), 75_000);
+        setTimeout(() => router.refresh(), 150_000);
+        setTimeout(() => router.refresh(), 220_000);
+      } else if (r.ok) {
+        showFeedback(`Brief #${r.brief_id} · plan #${r.plan_id} · ${r.asset_count || 0} creatives ready`);
         setGoal(''); setNotes('');
         if (r.brief_id) setSelectedBriefId(r.brief_id);
         setTimeout(() => router.refresh(), 600);
