@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { requireAdmin } from '@/lib/auth';
 import { getCurrentTenantId } from '@/lib/tenant';
 import { CeoClient } from './client';
+import { CeoChat } from './ceo-chat';
+
+export const maxDuration = 60;
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -35,7 +38,8 @@ export default async function Page() {
   return (
     <>
       <TopBar title="VAMETRIX CEO" breadcrumb="Agent #0 · Engine supervisor" />
-      <div className="flex-1 overflow-y-auto scrollbar bg-bg p-6">
+      <div className="flex-1 overflow-y-auto scrollbar bg-bg p-6 space-y-6">
+        <CeoChat />
         <CeoClient {...data} />
       </div>
     </>
