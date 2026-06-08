@@ -12,6 +12,7 @@ type R = { ok: boolean; error?: string; [k: string]: any };
 export async function submitBrief(input: {
   goal: string;
   brand?: string;
+  vertical?: string;
   target_geo?: string;
   target_persona?: string;
   budget_inr_daily?: number;
@@ -27,6 +28,7 @@ export async function submitBrief(input: {
       submitted_by: u.id,
       goal: input.goal.trim(),
       brand: input.brand || 'mixed',
+      vertical: input.vertical || null,
       target_geo: input.target_geo || 'Pan-India',
       target_persona: input.target_persona || null,
       budget_inr_daily: input.budget_inr_daily || null,
@@ -46,6 +48,7 @@ export async function submitBrief(input: {
         brief_id: data.id,
         goal: data.goal,
         brand: data.brand,
+        vertical: data.vertical,
         target_geo: data.target_geo,
         target_persona: data.target_persona,
         budget_inr_daily: data.budget_inr_daily,
@@ -191,6 +194,7 @@ export async function killLaunch(campaign_id: string, reason: string): Promise<R
 export async function oneClickCampaign(input: {
   goal: string;
   brand?: string;
+  vertical?: string;
   target_geo?: string;
   target_persona?: string;
   budget_inr_daily?: number;
@@ -212,6 +216,7 @@ export async function oneClickCampaign(input: {
       body: JSON.stringify({
         goal: input.goal.trim(),
         brand: input.brand || 'mixed',
+        vertical: input.vertical || null,
         target_geo: input.target_geo || 'Pan-India',
         target_persona: input.target_persona || null,
         budget_inr_daily: input.budget_inr_daily || null,

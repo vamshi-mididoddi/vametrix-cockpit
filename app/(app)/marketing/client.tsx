@@ -35,6 +35,7 @@ export function MarketingClient({
   // Form state for new brief
   const [goal, setGoal] = useState('');
   const [brand, setBrand] = useState('mixed');
+  const [vertical, setVertical] = useState('auto');
   const [geo, setGeo] = useState('Telangana');
   const [persona, setPersona] = useState('');
   const [dailyBudget, setDailyBudget] = useState<number | ''>('');
@@ -68,6 +69,7 @@ export function MarketingClient({
       const r = await submitBrief({
         goal: goal.trim(),
         brand,
+        vertical: vertical === 'auto' ? undefined : vertical,
         target_geo: geo || 'Pan-India',
         target_persona: persona || undefined,
         budget_inr_daily: dailyBudget === '' ? undefined : Number(dailyBudget),
@@ -96,6 +98,7 @@ export function MarketingClient({
       const r = await oneClickCampaign({
         goal: goal.trim(),
         brand,
+        vertical: vertical === 'auto' ? undefined : vertical,
         target_geo: geo || 'Pan-India',
         target_persona: persona || undefined,
         budget_inr_daily: dailyBudget === '' ? undefined : Number(dailyBudget),
@@ -208,6 +211,20 @@ export function MarketingClient({
               <select value={brand} onChange={e => setBrand(e.target.value)}
                 className="w-full bg-bg-soft border border-bg-border rounded px-2 py-1.5 text-xs">
                 {BRAND_OPTS.map(b => <option key={b} value={b}>{BRAND_LABEL[b] || b}</option>)}
+              </select>
+            </Field>
+            <Field label="Vertical">
+              <select value={vertical} onChange={e => setVertical(e.target.value)}
+                className="w-full bg-bg-soft border border-bg-border rounded px-2 py-1.5 text-xs">
+                <option value="auto">Auto-detect</option>
+                <option value="dcal_b2c">D'Cal — B2C (homeowners)</option>
+                <option value="dcal_b2b">D'Cal — B2B (builders/plumbers)</option>
+                <option value="rice_b2c">Befach Diet rice — B2C</option>
+                <option value="rice_b2b">Befach Diet rice — B2B (HoReCa)</option>
+                <option value="wellness_b2c">Wellness — B2C</option>
+                <option value="wellness_b2b">Wellness — B2B (gyms/clinics)</option>
+                <option value="essentio">Essentio FMCG</option>
+                <option value="imports">Befach Imports (B2B sourcing)</option>
               </select>
             </Field>
             <Field label="Geo">
