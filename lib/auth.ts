@@ -25,19 +25,17 @@ export const getCurrentUser = cache(async (): Promise<AuthedUser | null> => {
     const supa = createServerSupabase();
     const { data: { user } } = await supa.auth.getUser();
     if (!user) return null;
+    // Single round-trip: profile + its tenant (slug,name) via the FK embed,
+    // instead of two sequential queries. Cuts one cross-network hop per page.
     const { data: profile } = await supa
       .from('user_profiles')
-      .select('role,full_name,tenant_id')
+      .select('role,full_name,tenant_id,tenants(slug,name)')
       .eq('id', user.id)
       .maybeSingle();
     const tenant_id = (profile as any)?.tenant_id || DEFAULT_TENANT_ID;
-    // Resolve tenant slug + name (light query, cached at request edge by Next)
-    let tenant_slug: string | undefined;
-    let tenant_name: string | undefined;
-    try {
-      const { data: t } = await supa.from('tenants').select('slug,name').eq('id', tenant_id).maybeSingle();
-      if (t) { tenant_slug = (t as any).slug; tenant_name = (t as any).name; }
-    } catch { /* tenants table may not exist yet */ }
+    const t = (profile as any)?.tenants;
+    const tenant_slug: string | undefined = t?.slug;
+    const tenant_name: string | undefined = t?.name;
     return {
       id: user.id,
       email: user.email || null,
