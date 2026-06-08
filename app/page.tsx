@@ -1,15 +1,10 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
 import { LandingPage } from '@/components/landing/landing';
 
-export const dynamic = 'force-dynamic';
+// Public marketing site — STATICALLY generated and served from the CDN (instant,
+// no per-request server render, no auth round-trip). Logged-in visitors are
+// redirected to /dashboard by middleware via a cheap cookie check (no network).
+export const dynamic = 'force-static';
 
-// Public marketing site. Logged-in users are sent straight to their dashboard.
-export default async function Home() {
-  const user = await getCurrentUser();
-  if (user) {
-    const role = user.role === 'master_admin' ? 'admin' : user.role;
-    redirect(role === 'team' ? '/dashboard' : '/dashboard');
-  }
+export default function Home() {
   return <LandingPage />;
 }

@@ -20,6 +20,19 @@ function toLogin(req: NextRequest) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Landing page: served statically to anonymous visitors (fast, CDN-cached).
+  // Logged-in visitors are bounced to their dashboard via a cheap cookie check
+  // (no Supabase network round-trip — the dashboard itself validates the session).
+  if (pathname === '/') {
+    const hasAuthCookie = req.cookies.getAll().some(c => c.name.includes('-auth-token'));
+    if (hasAuthCookie) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
   // Public paths render without any auth check
   if (isPublic(pathname)) {
     return NextResponse.next();
