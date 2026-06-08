@@ -13,6 +13,7 @@ const GRAPH = `https://graph.facebook.com/${VER}`;
 export interface CeoCtx {
   orKey: string; orBase: string; model: string;
   metaToken: string; adAccount: string; // numeric, no act_
+  n8nBase: string; n8nKey: string;
   tenantId: string;
 }
 export type ChatMsg = { role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: any[]; tool_call_id?: string; name?: string };
@@ -23,8 +24,14 @@ const SYSTEM = `You are **Vametrix CEO** — the autonomous operator of the Vame
 You operate a real Meta ad account, a WhatsApp lead engine, and a fleet of agents. You think and talk like a sharp, senior performance marketer + operator — direct, specific, numbers-first, no fluff.
 
 HOW YOU WORK:
-- For anything informational (how are campaigns doing, what's wasting money, pipeline status, agent health, diagnostics) — CALL THE READ TOOLS and answer from real data. Never make up numbers.
-- For anything that SPENDS money or CHANGES a live campaign (pause, activate, change budget, launch) — DO NOT do it directly. Call the "propose_action" tool to put it in front of the user for one-tap approval. Explain why in plain language.
+- For anything informational (how are campaigns doing, what's wasting money, pipeline status, agent health, diagnostics, what plans exist) — CALL THE READ TOOLS and answer from real data. Never make up numbers.
+- For anything that SPENDS money or CHANGES a live campaign (pause, activate, change budget, generate a new campaign, push a campaign live to Meta) — DO NOT do it directly. Call the "propose_action" tool to put it in front of the user for one-tap approval. Explain why in plain language.
+
+LAUNCHING A NEW CAMPAIGN (when the user asks to "run/create/launch a campaign for X"):
+- Step 1: propose_action action="generate_campaign" with goal, brand, vertical, geo, daily_inr, days. On approval the engine writes the strategy + generates ad creatives (~1-2 min) and returns a plan id.
+- Step 2: once a plan exists (use recent_plans to find it), propose_action action="push_campaign_to_meta" with plan_id — this builds the campaign on Meta as PAUSED for review.
+- Walk the user through it conversationally; never skip the approval step.
+- brand is one of: dcal, befach_diet (rice), wellness, essentio, befach_imports, gcom, mixed. vertical examples: dcal_b2b, dcal_b2c, rice_b2b, rice_b2c, wellness_b2b, imports.
 - Chain tools when needed (e.g. audit first, then propose pausing the wasteful ones).
 - Be concise. Use short paragraphs, tables when comparing campaigns, ₹ for money. Bold the key number or recommendation.
 - When you propose actions, summarize them clearly so the user knows exactly what they're approving.
@@ -38,13 +45,20 @@ export const TOOLS = [
   { type: 'function', function: { name: 'campaign_quality', description: 'Last-7-day ad quality diagnostics (Meta quality/engagement/conversion rankings + CPM/CTR) for currently delivering ads. Use to diagnose WHY a CPL is high or a campaign is underperforming.', parameters: { type: 'object', properties: {} } } },
   { type: 'function', function: { name: 'get_pipeline', description: 'Lead pipeline summary from the engine: counts by stage (new/engaged/qualified/hot/won/lost) and recent lead volume.', parameters: { type: 'object', properties: {} } } },
   { type: 'function', function: { name: 'engine_health', description: 'Health of the engine + agents: recent CEO observations / flagged issues. Use for "is anything broken", "any agent stuck".', parameters: { type: 'object', properties: {} } } },
-  { type: 'function', function: { name: 'propose_action', description: 'Propose a money-spending or live-campaign-changing action for the user to APPROVE. Never execute writes directly — always propose. Supported actions: pause_campaign, activate_campaign, set_daily_budget.', parameters: { type: 'object', properties: {
-    action: { type: 'string', enum: ['pause_campaign', 'activate_campaign', 'set_daily_budget'], description: 'What to do' },
-    campaign_id: { type: 'string', description: 'The Meta campaign id' },
+  { type: 'function', function: { name: 'recent_plans', description: 'List recently generated marketing plans (id, brand, status, when, creative count). Use to find a plan to push to Meta, or to check if a just-generated campaign is ready.', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'propose_action', description: 'Propose a money-spending or campaign-changing action for the user to APPROVE. Never execute directly. Actions: pause_campaign, activate_campaign, set_daily_budget (need campaign_id); generate_campaign (needs goal+brand+geo+daily_inr — writes strategy + creatives); push_campaign_to_meta (needs plan_id — builds the PAUSED Meta campaign).', parameters: { type: 'object', properties: {
+    action: { type: 'string', enum: ['pause_campaign', 'activate_campaign', 'set_daily_budget', 'generate_campaign', 'push_campaign_to_meta'], description: 'What to do' },
+    campaign_id: { type: 'string', description: 'Meta campaign id (for pause/activate/budget)' },
     campaign_name: { type: 'string', description: 'Human name for display' },
-    daily_inr: { type: 'number', description: 'For set_daily_budget: the new daily budget in rupees' },
+    daily_inr: { type: 'number', description: 'Daily budget in rupees (set_daily_budget or generate_campaign)' },
+    goal: { type: 'string', description: 'generate_campaign: the campaign goal in one line' },
+    brand: { type: 'string', description: 'generate_campaign: dcal | befach_diet | wellness | essentio | befach_imports | gcom | mixed' },
+    vertical: { type: 'string', description: 'generate_campaign: e.g. dcal_b2b, rice_b2b' },
+    geo: { type: 'string', description: 'generate_campaign: target geography' },
+    days: { type: 'number', description: 'generate_campaign: campaign duration in days' },
+    plan_id: { type: 'number', description: 'push_campaign_to_meta: the plan id to launch' },
     reason: { type: 'string', description: 'Why — shown to the user' },
-  }, required: ['action', 'campaign_id', 'reason'] } } },
+  }, required: ['action', 'reason'] } } },
 ];
 
 async function metaGET(ctx: CeoCtx, path: string) {
@@ -102,6 +116,19 @@ async function engine_health(ctx: CeoCtx) {
   } catch { return { note: 'No observations yet / no recent CEO scan.' }; }
 }
 
+async function recent_plans(ctx: CeoCtx) {
+  const supa = supabaseAdmin();
+  try {
+    const { data } = await supa.from('marketing_plans').select('id,brand,status,created_at,brief_id').eq('tenant_id', ctx.tenantId).order('id', { ascending: false }).limit(8);
+    const plans = [];
+    for (const p of (data || []) as any[]) {
+      const { count } = await supa.from('creative_assets').select('id', { count: 'exact', head: true }).eq('plan_id', p.id);
+      plans.push({ plan_id: p.id, brand: p.brand, status: p.status, creatives: count || 0, when: p.created_at });
+    }
+    return { plans };
+  } catch { return { plans: [], note: 'no plans table / none yet' }; }
+}
+
 async function execReadTool(name: string, args: any, ctx: CeoCtx): Promise<any> {
   switch (name) {
     case 'audit_campaigns': return audit_campaigns(ctx);
@@ -109,22 +136,50 @@ async function execReadTool(name: string, args: any, ctx: CeoCtx): Promise<any> 
     case 'campaign_quality': return campaign_quality(ctx);
     case 'get_pipeline': return get_pipeline(ctx);
     case 'engine_health': return engine_health(ctx);
+    case 'recent_plans': return recent_plans(ctx);
     default: return { error: 'unknown tool ' + name };
   }
 }
 
 // ---------- WRITE action executor (only after approval) ----------
-export async function executeAction(p: { action: string; campaign_id: string; daily_inr?: number }, ctx: CeoCtx): Promise<{ ok: boolean; detail: string }> {
+export async function executeAction(p: { action: string; campaign_id?: string; daily_inr?: number; goal?: string; brand?: string; vertical?: string; geo?: string; days?: number; plan_id?: number }, ctx: CeoCtx): Promise<{ ok: boolean; detail: string }> {
   try {
+    // ---- generate a new campaign (strategy + creatives) via orchestrator #86 ----
+    if (p.action === 'generate_campaign') {
+      const controller = new AbortController(); const t = setTimeout(() => controller.abort(), 55000);
+      try {
+        const r = await fetch(`${ctx.n8nBase}/webhook/vametrix-86-orchestrate`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal: p.goal, brand: p.brand || 'mixed', vertical: p.vertical || null, target_geo: p.geo || 'Pan-India', budget_inr_daily: p.daily_inr || null, timeline_days: p.days || 30 }),
+          signal: controller.signal,
+        });
+        clearTimeout(t);
+        const j = await r.json().catch(() => ({}));
+        if (j && j.plan_id) return { ok: true, detail: `Generated plan #${j.plan_id} with ${Array.isArray(j.assets) ? j.assets.length : 0} creatives — ready to push to Meta.` };
+        return { ok: true, detail: 'Campaign is generating (strategy + creatives). Ask me to check recent plans in ~90s, then push it to Meta.' };
+      } catch { clearTimeout(t); return { ok: true, detail: 'Campaign is generating in the background (~1-2 min). Ask me to list recent plans shortly, then push the new one to Meta.' }; }
+    }
+    // ---- push an existing plan live to Meta (PAUSED) via launcher #90 ----
+    if (p.action === 'push_campaign_to_meta') {
+      if (!p.plan_id) return { ok: false, detail: 'plan_id required' };
+      const r = await fetch(`${ctx.n8nBase}/webhook/vametrix-90-launch`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: p.plan_id }) });
+      const j = await r.json().catch(() => ({}));
+      const cid = j && (j.campaign_id || (j.summary && j.summary.campaign_id));
+      if (cid) return { ok: true, detail: `Built campaign ${cid} on Meta (PAUSED). Review it, then say "activate" when ready.` };
+      if (j && j.summary && j.summary.ad_error) return { ok: false, detail: `Launch blocked: ${j.summary.ad_error}` };
+      return { ok: true, detail: 'Launch fired — building the PAUSED campaign on Meta. Check campaigns in a moment.' };
+    }
+    // ---- live campaign edits via Meta Graph ----
     let body: any = {};
     if (p.action === 'pause_campaign') body = { status: 'PAUSED' };
     else if (p.action === 'activate_campaign') body = { status: 'ACTIVE' };
     else if (p.action === 'set_daily_budget') { if (!p.daily_inr) return { ok: false, detail: 'daily_inr required' }; body = { daily_budget: Math.round(p.daily_inr * 100) }; }
     else return { ok: false, detail: 'unsupported action ' + p.action };
+    if (!p.campaign_id) return { ok: false, detail: 'campaign_id required' };
     const r = await fetch(`${GRAPH}/${p.campaign_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, access_token: ctx.metaToken }) });
     const j = await r.json();
     if (j.error) return { ok: false, detail: j.error.error_user_title || j.error.message };
-    return { ok: true, detail: `${p.action} done on ${p.campaign_id}` };
+    return { ok: true, detail: `${p.action.replace(/_/g, ' ')} done on ${p.campaign_id}` };
   } catch (e: any) { return { ok: false, detail: String(e?.message || e) }; }
 }
 
@@ -157,7 +212,11 @@ export async function runCeoTurn(history: ChatMsg[], ctx: CeoCtx): Promise<{ rep
       try { args = JSON.parse(tc.function.arguments || '{}'); } catch { args = {}; }
       if (tc.function.name === 'propose_action') {
         const id = `p${++pid}`;
-        proposals.push({ id, action: args.action, args: { campaign_id: args.campaign_id, daily_inr: args.daily_inr, campaign_name: args.campaign_name }, label: `${(args.action || '').replace(/_/g, ' ')}${args.campaign_name ? ' — ' + args.campaign_name : ''}${args.daily_inr ? ' → ₹' + args.daily_inr + '/day' : ''}`, reason: args.reason || '' });
+        let label = (args.action || '').replace(/_/g, ' ');
+        if (args.action === 'generate_campaign') label = `Generate ${args.brand || ''} campaign${args.geo ? ' · ' + args.geo : ''}${args.daily_inr ? ' · ₹' + args.daily_inr + '/day' : ''}`;
+        else if (args.action === 'push_campaign_to_meta') label = `Build plan #${args.plan_id} on Meta (PAUSED)`;
+        else label = `${label}${args.campaign_name ? ' — ' + args.campaign_name : ''}${args.daily_inr ? ' → ₹' + args.daily_inr + '/day' : ''}`;
+        proposals.push({ id, action: args.action, args: { campaign_id: args.campaign_id, daily_inr: args.daily_inr, campaign_name: args.campaign_name, goal: args.goal, brand: args.brand, vertical: args.vertical, geo: args.geo, days: args.days, plan_id: args.plan_id }, label, reason: args.reason || '' });
         messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ proposed: true, note: 'Shown to user for approval. Do not repeat it; continue or summarize.' }) });
       } else {
         const result = await execReadTool(tc.function.name, args, ctx);

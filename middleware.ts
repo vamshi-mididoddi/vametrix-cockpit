@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // PUBLIC routes anyone can visit (no auth check):
-const PUBLIC_PATHS = ['/login', '/auth', '/_next', '/favicon'];
+const PUBLIC_PATHS = ['/login', '/auth', '/_next', '/favicon', '/api/telegram'];
 const PUBLIC_EXACT = new Set(['/']);
 
 function isPublic(pathname: string): boolean {

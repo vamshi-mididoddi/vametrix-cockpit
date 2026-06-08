@@ -6,9 +6,10 @@ import { runCeoTurn, executeAction, type ChatMsg, type CeoCtx, type Proposal } f
 
 async function buildCtx(): Promise<CeoCtx | { error: string }> {
   const tenantId = await getCurrentTenantId();
-  const [or, meta] = await Promise.all([
+  const [or, meta, n8n] = await Promise.all([
     getTenantCredentials(tenantId, 'openrouter'),
     getTenantCredentials(tenantId, 'meta_ads'),
+    getTenantCredentials(tenantId, 'n8n'),
   ]);
   const orKey = or.api_key || process.env.OPENROUTER_API_KEY || '';
   const metaToken = meta.access_token || process.env.META_ACCESS_TOKEN || '';
@@ -22,6 +23,8 @@ async function buildCtx(): Promise<CeoCtx | { error: string }> {
     // (premium tier). Opus (reasoning_model) is overkill + ~5x the cost for a chat.
     model: or.premium_model || or.default_model || 'anthropic/claude-sonnet-4.6',
     metaToken, adAccount, tenantId,
+    n8nBase: (n8n.base_url || process.env.N8N_BASE_URL || 'https://n8n.srv1048087.hstgr.cloud').replace(/\/$/, ''),
+    n8nKey: n8n.api_key || process.env.N8N_API_KEY || '',
   };
 }
 
