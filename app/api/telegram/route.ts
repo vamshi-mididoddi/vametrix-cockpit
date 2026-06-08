@@ -49,6 +49,16 @@ export async function POST(req: NextRequest) {
   try { update = await req.json(); } catch { return NextResponse.json({ ok: true }); }
   const supa = supabaseAdmin();
 
+  // ---- dedup: ignore updates Telegram resends (slow-200 retries) ----
+  if (update.update_id != null) {
+    const { error: dup } = await supa.from('telegram_seen_updates').insert({ update_id: update.update_id });
+    // 23505 = unique violation → we've already started this update → skip silently.
+    if (dup && (dup.code === '23505' || /duplicate key/i.test(dup.message || ''))) {
+      return NextResponse.json({ ok: true });
+    }
+    // any other error (e.g. table not created yet) → proceed without dedup
+  }
+
   // ---- inline button tap (approve / cancel) ----
   if (update.callback_query) {
     const cq = update.callback_query;
@@ -96,11 +106,14 @@ export async function POST(req: NextRequest) {
   const newMsgs = [...history, { role: 'user', content: text }, { role: 'assistant', content: reply }].slice(-16);
   await supa.from('ceo_chat_sessions').upsert({ chat_id: chat, tenant_id: DEFAULT_TENANT_ID, messages: newMsgs, updated_at: new Date().toISOString() }, { onConflict: 'chat_id' });
 
-  await tg(token, 'sendMessage', { chat_id: chat, text: clean(reply) });
+  // Build approve buttons for all proposals and attach them to ONE reply message
+  // (was: reply + one message per proposal → felt like "lots of messages").
+  const rows: any[] = [];
   for (const p of proposals) {
     const { data: ins } = await supa.from('ceo_pending_actions').insert({ chat_id: chat, tenant_id: DEFAULT_TENANT_ID, action: p.action, args: p.args, label: p.label, status: 'pending' }).select('id').single();
-    if (ins) await tg(token, 'sendMessage', { chat_id: chat, text: '⚠️ ' + p.label + (p.reason ? '\n' + p.reason : ''), reply_markup: { inline_keyboard: [[{ text: '✅ Approve', callback_data: 'a:' + (ins as any).id }, { text: '✖️ Cancel', callback_data: 'x:' + (ins as any).id }]] } });
+    if (ins) rows.push([{ text: '✅ ' + (p.label || 'Approve').slice(0, 38), callback_data: 'a:' + (ins as any).id }, { text: '✖️', callback_data: 'x:' + (ins as any).id }]);
   }
+  await tg(token, 'sendMessage', { chat_id: chat, text: clean(reply), ...(rows.length ? { reply_markup: { inline_keyboard: rows } } : {}) });
   return NextResponse.json({ ok: true });
 }
 
