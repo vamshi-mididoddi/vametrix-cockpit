@@ -54,6 +54,7 @@ export function Sidebar({
   // ── MARKETING & SALES system ──
   const marketingSales: NavItem[] = [
     { id: 'marketing',  label: 'Marketing Brain', href: '/marketing',  icon: 'rocket', status: 'live' },
+    { id: 'hunter',     label: 'Buyer Hunter',    href: '/hunter',     icon: 'target', status: 'live' },
     { id: 'outbound',   label: 'Outbound B2B',    href: '/outbound',   icon: 'send',   status: 'live' },
     { id: 'brands',     label: 'Brand Context',   href: '/brands',     icon: 'tag',    status: 'live' },
     { id: 'tech-audit', label: 'Tech Stack Audit',href: '/tech-audit', icon: 'shield-check', status: 'live' },
