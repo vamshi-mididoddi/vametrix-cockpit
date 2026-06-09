@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { addKnowledgeDocument, deleteKnowledgeDocument } from './actions';
 import { BRAND_LABEL } from '@/lib/agents';
 
-const BRANDS = ['befach_imports', 'gcom', 'dcal', 'dcal_hardwater', 'befach_diet', 'wellness', 'essentio', 'shared'];
-const DOC_TYPES = ['product', 'pricing', 'policy', 'objection', 'faq', 'brand_voice', 'other'];
+// Our real verticals only. Use the segment in the title/content (e.g. "D'Cal — B2B Pricing").
+const BRANDS = ['befach_diet', 'dcal', 'befach_imports', 'globalshopper', 'shared'];
+const DOC_TYPES = ['product', 'pricing', 'policy', 'objection', 'faq', 'brand_voice', 'd2c', 'b2b', 'other'];
 
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);

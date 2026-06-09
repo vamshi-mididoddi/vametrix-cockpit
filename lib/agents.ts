@@ -60,14 +60,16 @@ export const INFRA = [
 ];
 
 export const BRAND_LABEL: Record<string, string> = {
-  befach_imports: 'Befach Imports',
+  befach_diet: 'Befach Low-GI Rice',
+  dcal: "D'Cal Softener",
+  befach_imports: 'Befach International',
+  globalshopper: 'Global Shopper',
+  shared: 'Shared',
+  // legacy keys kept so old rows/labels still render
   gcom: 'GCOM',
-  dcal: 'Dcal',
   dcal_hardwater: "D'Cal Hardwater",
-  befach_diet: 'Befach Diet',
   wellness: 'Wellness',
   essentio: 'Essentio',
-  shared: 'Shared',
   unknown: 'Unknown',
 };
 
