@@ -179,6 +179,31 @@ export function LeadDetailClient({
           </div>
         </div>
 
+        {/* Dealer profile — auto-captured by the WhatsApp qualifier (meta.qualification) */}
+        {(() => {
+          const q = ((lead as any).meta && (lead as any).meta.qualification) || {};
+          const entries: Array<[string, any]> = [
+            ['Company', q.company], ['Contact', q.contact_name],
+            ['City', q.city], ['State', q.state],
+            ['Type', q.dealer_or_distributor], ['Monthly volume', q.monthly_volume],
+            ['Current brands', q.current_brands], ['Investment', q.investment_capacity],
+            ['Warehouse', q.warehouse],
+          ];
+          const filled = entries.filter(([, v]) => v != null && v !== '');
+          if (!filled.length) return null;
+          return (
+            <div className="bg-bg-card border border-bg-border rounded-lg p-5">
+              <div className="text-xs font-semibold text-slate-300 mb-3 flex items-center gap-1.5">
+                <span className="text-accent-400">◆</span> Dealer Profile
+                <span className="text-[9px] text-slate-600 font-normal uppercase tracking-wider">auto-captured</span>
+              </div>
+              <div className="space-y-1.5 text-xs">
+                {filled.map(([k, v]) => <Row key={k} k={k} v={String(v)} />)}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Action buttons */}
         {isOpen && (
           <div className="space-y-2">
