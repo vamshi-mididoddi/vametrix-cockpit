@@ -90,8 +90,12 @@ async function loadThreads(selectedPhone?: string) {
   return { threadList, leadByPhone, selectedPhone: sel, selectedMsgs, selectedLead, statusByMsgId };
 }
 
-function statusIndicator(status: string | undefined) {
-  if (!status) return { icon: '⏱', cls: 'text-slate-500', label: 'pending' };
+function statusIndicator(status: string | undefined, wasSent?: boolean) {
+  // No Meta delivery receipt yet: if we DID send it, show "sent"; only truly
+  // un-sent messages are "pending". (Receipts upgrade to delivered/read below.)
+  if (!status) return wasSent
+    ? { icon: '✓', cls: 'text-slate-400', label: 'sent' }
+    : { icon: '⏱', cls: 'text-slate-500', label: 'pending' };
   if (status === 'sent')      return { icon: '✓',  cls: 'text-slate-400', label: 'sent' };
   if (status === 'delivered') return { icon: '✓✓', cls: 'text-slate-400', label: 'delivered' };
   if (status === 'read')      return { icon: '✓✓', cls: 'text-sky-400',   label: 'READ' };
@@ -191,7 +195,10 @@ export default async function Page({ searchParams }: { searchParams: { phone?: s
                 // Extract Meta message id from various meta shapes and look up delivery status
                 const metaMsgId = (meta?.meta_send_response?.messages?.[0]?.id) || meta?.meta_message_id;
                 const status = (!isIn && metaMsgId) ? statusByMsgId[metaMsgId] : undefined;
-                const ind = !isIn ? statusIndicator(status) : null;
+                // A reply that was actually dispatched (auto-sent / manually sent) is "sent",
+                // not "pending", even before Meta's delivery receipt arrives.
+                const wasSent = !isIn && (!!metaMsgId || ['auto_sent', 'sent', 'manual_sent', 'queued'].includes(meta?.status));
+                const ind = !isIn ? statusIndicator(status, wasSent) : null;
                 const failed = status === 'failed';
                 const bubbleClass = isIn
                   ? 'bg-slate-800 text-slate-100 border border-slate-700'
