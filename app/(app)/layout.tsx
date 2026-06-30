@@ -1,5 +1,5 @@
 import { AppShell } from '@/components/app-shell';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth, isMasterAdmin } from '@/lib/auth';
 import { getCockpitSignals } from '@/lib/cockpit-signals';
 
 // Wraps every authenticated cockpit page. requireAuth() redirects to /login
@@ -13,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       role={role}
+      isMaster={isMasterAdmin(user)}
       tenantName={user.tenant_name}
       tenantSlug={user.tenant_slug}
       hotLeadCount={signals.hotCount}

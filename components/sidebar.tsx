@@ -21,9 +21,10 @@ const fleetAgents = (fleet: string): NavItem[] =>
   }));
 
 export function Sidebar({
-  role, tenantName, tenantSlug, hotLeadCount,
+  role, isMaster, tenantName, tenantSlug, hotLeadCount,
 }: {
   role: 'admin' | 'team';
+  isMaster?: boolean;
   tenantName?: string;
   tenantSlug?: string;
   hotLeadCount?: number;
@@ -40,6 +41,7 @@ export function Sidebar({
   const workspace: NavItem[] = isAdmin
     ? [
         { id: 'dashboard', label: 'Overview',        href: '/dashboard', icon: 'layout-dashboard' },
+        { id: 'revenue',   label: 'Revenue OS',      href: '/revenue',   icon: 'trending-up', status: 'live' },
         { id: 'ceo',       label: 'VAMETRIX CEO',    href: '/ceo',       icon: 'shield', status: 'live' },
         { id: 'leads',     label: 'Lead Pipeline',   href: '/leads',     icon: 'kanban-square', status: 'live', badge: hotLeadCount },
         { id: 'inbox',     label: 'WhatsApp Inbox',  href: '/inbox',     icon: 'message-square', status: 'live' },
@@ -82,7 +84,10 @@ export function Sidebar({
 
   // ── CONFIGURATION ──
   const config: NavItem[] = [
+    // Clients (cross-tenant) is Vametrix-staff only — a client's own admin must not see it.
+    ...(isMaster ? [{ id: 'clients', label: 'Clients', href: '/clients', icon: 'building-2' }] : []),
     { id: 'team',      label: 'Team & Roles',    href: '/team',      icon: 'users' },
+    { id: 'billing',   label: 'Billing',         href: '/billing',   icon: 'receipt-indian-rupee' },
     { id: 'workflows', label: 'Workflows (n8n)', href: '/workflows', icon: 'workflow' },
     { id: 'cost',      label: 'Cost Monitor',    href: '/cost',      icon: 'wallet' },
     { id: 'audit',     label: 'Audit Log',       href: '/audit',     icon: 'clipboard-list' },

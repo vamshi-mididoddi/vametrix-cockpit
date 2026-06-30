@@ -24,7 +24,7 @@ function randomPassword(): string {
 }
 
 export async function inviteUser(email: string, fullName: string, role: 'admin' | 'team'): Promise<{ ok: boolean; error?: string; temp_password?: string; email?: string }> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   if (!email) return { ok: false, error: 'email required' };
   try {
     const supa = supabaseAdmin();
@@ -44,7 +44,7 @@ export async function inviteUser(email: string, fullName: string, role: 'admin' 
         id: data.user.id,
         role,
         full_name: fullName || email,
-        tenant_id: u.tenant_id,
+        tenant_id: admin.tenant_id,
       } as any);
     }
     return { ok: true, temp_password: tempPassword, email };
