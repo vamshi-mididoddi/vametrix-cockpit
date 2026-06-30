@@ -9,9 +9,10 @@ import { Sidebar } from './sidebar';
 //  - mobile (<md): hidden; slides in as an overlay drawer when the topbar
 //    hamburger fires the 'vametrix:toggle-nav' event.
 export function AppShell({
-  role, tenantName, tenantSlug, hotLeadCount, children,
+  role, isMaster, tenantName, tenantSlug, hotLeadCount, children,
 }: {
   role: 'admin' | 'team';
+  isMaster?: boolean;
   tenantName?: string;
   tenantSlug?: string;
   hotLeadCount?: number;
@@ -37,7 +38,7 @@ export function AppShell({
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  const sidebarProps = { role, tenantName, tenantSlug, hotLeadCount };
+  const sidebarProps = { role, isMaster, tenantName, tenantSlug, hotLeadCount };
 
   return (
     <div className="flex h-screen bg-bg overflow-hidden">

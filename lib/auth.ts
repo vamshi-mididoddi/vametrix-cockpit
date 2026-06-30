@@ -62,9 +62,24 @@ export async function requireAdmin(): Promise<AuthedUser> {
   return u;
 }
 
+// "Master" = Vametrix staff who manage the whole platform (all clients), vs a
+// client's own admin who manages only their tenant. Anyone explicitly
+// master_admin qualifies; so do admins on the home (Befach/Vametrix) tenant,
+// since that tenant IS the operator. Admins on any OTHER tenant are client
+// admins and must NOT see cross-client surfaces (e.g. the Clients list).
+export function isMasterAdmin(u: AuthedUser): boolean {
+  return u.role === 'master_admin' || (u.role === 'admin' && u.tenant_id === DEFAULT_TENANT_ID);
+}
+
+export async function requireMasterAdmin(): Promise<AuthedUser> {
+  const u = await requireAuth();
+  if (!isMasterAdmin(u)) redirect('/dashboard?forbidden=1');
+  return u;
+}
+
 // Routes only admin can visit (paths startsWith)
 export const ADMIN_ONLY_PATHS = [
-  '/cost', '/settings', '/audit', '/opt-outs', '/workflows', '/knowledge',
+  '/revenue', '/billing', '/clients', '/cost', '/settings', '/audit', '/opt-outs', '/workflows', '/knowledge',
   '/marketing', '/tech-audit', '/brands', '/ceo', '/outbound', '/hunter',
   '/agent-2','/agent-3','/agent-4','/agent-5','/agent-6','/agent-7','/agent-8','/agent-9',
   '/agent-10','/agent-11','/agent-12','/agent-13','/agent-14','/agent-15','/agent-16',
