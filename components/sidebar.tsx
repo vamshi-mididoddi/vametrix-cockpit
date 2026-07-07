@@ -41,6 +41,7 @@ export function Sidebar({
   const workspace: NavItem[] = isAdmin
     ? [
         { id: 'dashboard', label: 'Overview',        href: '/dashboard', icon: 'layout-dashboard' },
+        { id: 'salesos',   label: 'Sales OS',        href: '/sales',     icon: 'message-square', status: 'live' },
         { id: 'revenue',   label: 'Revenue OS',      href: '/revenue',   icon: 'trending-up', status: 'live' },
         { id: 'ceo',       label: 'VAMETRIX CEO',    href: '/ceo',       icon: 'shield', status: 'live' },
         { id: 'leads',     label: 'Lead Pipeline',   href: '/leads',     icon: 'kanban-square', status: 'live', badge: hotLeadCount },
