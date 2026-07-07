@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+﻿import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { LoginForm } from './form';
 
@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
             V
           </div>
           <div>
-            <div className="text-xl font-semibold tracking-tight">Vametrix Engine</div>
+            <div className="text-xl font-semibold tracking-tight">VAMETRIX Sales</div>
             <div className="text-[11px] text-zinc-500 font-mono">Autonomous AI sales + marketing</div>
           </div>
         </div>
@@ -33,7 +33,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
         <div className="bg-bg-card border border-bg-border rounded-2xl p-8 shadow-pop backdrop-blur-sm">
           <div className="mb-6">
             <h1 className="text-lg font-semibold tracking-tight">Welcome back</h1>
-            <p className="text-xs text-zinc-500 mt-1">Sign in to your engine cockpit.</p>
+            <p className="text-xs text-zinc-500 mt-1">Sign in to your Sales OS.</p>
           </div>
           <LoginForm nextPath={searchParams.next || '/'} initialError={searchParams.error} />
         </div>
@@ -44,7 +44,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
             New here? Ask your admin to invite you.
           </div>
           <div className="text-[10px] text-zinc-700 font-mono uppercase tracking-[0.2em]">
-            VAMETRIX · v1.0
+            VAMETRIX Â· v1.0
           </div>
         </div>
       </div>
