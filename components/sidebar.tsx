@@ -38,21 +38,12 @@ export function Sidebar({
   const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }));
 
   // ── WORKSPACE (always visible, never collapsed) ──
-  const workspace: NavItem[] = isAdmin
-    ? [
-        { id: 'dashboard', label: 'Overview',        href: '/dashboard', icon: 'layout-dashboard' },
-        { id: 'salesos',   label: 'Sales OS',        href: '/sales',     icon: 'message-square', status: 'live' },
-        { id: 'revenue',   label: 'Revenue OS',      href: '/revenue',   icon: 'trending-up', status: 'live' },
-        { id: 'ceo',       label: 'VAMETRIX CEO',    href: '/ceo',       icon: 'shield', status: 'live' },
-        { id: 'leads',     label: 'Lead Pipeline',   href: '/leads',     icon: 'kanban-square', status: 'live', badge: hotLeadCount },
-        { id: 'inbox',     label: 'WhatsApp Inbox',  href: '/inbox',     icon: 'message-square', status: 'live' },
-      ]
-    : [
-        { id: 'dashboard',  label: 'My Today',       href: '/dashboard',        icon: 'layout-dashboard' },
-        { id: 'mine',       label: 'My Leads',       href: '/leads?view=mine',  icon: 'kanban-square', badge: hotLeadCount },
-        { id: 'leads',      label: 'All Open Leads', href: '/leads',            icon: 'list' },
-        { id: 'inbox',      label: 'WhatsApp Inbox', href: '/inbox',            icon: 'message-square' },
-      ];
+  // VAMETRIX Sales is the product. (Legacy engine screens removed from nav
+  // 2026-07-07 — their routes are retired with the old engine.)
+  const workspace: NavItem[] = [
+    { id: 'salesos',  label: 'Pipeline',        href: '/sales',          icon: 'kanban-square', status: 'live' },
+    { id: 'salescfg', label: 'Client Settings', href: '/sales/settings', icon: 'settings',      status: 'live' },
+  ];
 
   // ── MARKETING & SALES system ──
   const marketingSales: NavItem[] = [
@@ -87,22 +78,18 @@ export function Sidebar({
   const config: NavItem[] = [
     // Clients (cross-tenant) is Vametrix-staff only — a client's own admin must not see it.
     ...(isMaster ? [{ id: 'clients', label: 'Clients', href: '/clients', icon: 'building-2' }] : []),
-    { id: 'team',      label: 'Team & Roles',    href: '/team',      icon: 'users' },
-    { id: 'billing',   label: 'Billing',         href: '/billing',   icon: 'receipt-indian-rupee' },
-    { id: 'workflows', label: 'Workflows (n8n)', href: '/workflows', icon: 'workflow' },
-    { id: 'cost',      label: 'Cost Monitor',    href: '/cost',      icon: 'wallet' },
-    { id: 'audit',     label: 'Audit Log',       href: '/audit',     icon: 'clipboard-list' },
-    { id: 'settings',  label: 'Settings',        href: '/settings',  icon: 'settings' },
+    { id: 'team',    label: 'Team & Roles', href: '/team',    icon: 'users' },
+    { id: 'billing', label: 'Billing',      href: '/billing', icon: 'receipt-indian-rupee' },
   ];
 
   return (
     <aside className="w-[252px] bg-bg-soft border-r border-bg-border flex flex-col shrink-0 h-screen">
       {/* Brand */}
-      <Link href="/dashboard" className="px-4 py-4 border-b border-bg-border block hover:bg-white/[0.02] transition">
+      <Link href="/sales" className="px-4 py-4 border-b border-bg-border block hover:bg-white/[0.02] transition">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-base shrink-0 shadow-lg shadow-accent-500/20">V</div>
           <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-semibold tracking-tight truncate">{tenantName || 'Vametrix Engine'}</div>
+            <div className="text-[14px] font-semibold tracking-tight truncate">{tenantName || 'VAMETRIX Sales'}</div>
             <div className="text-[10px] text-zinc-500 truncate font-mono">{tenantSlug ? `${tenantSlug} · ` : ''}{role}</div>
           </div>
         </div>
@@ -122,33 +109,7 @@ export function Sidebar({
 
       <nav className="flex-1 overflow-y-auto scrollbar px-2 pb-4">
         {/* Workspace — always open */}
-        <Group title={isAdmin ? 'Workspace' : 'My work'} items={workspace} pathname={pathname} />
-
-        {/* Marketing & Sales */}
-        <Group
-          title="Marketing & Sales"
-          items={isAdmin ? marketingSales : []}
-          pathname={pathname}
-          collapsible isOpen={open.sales} onToggle={() => toggle('sales')}
-          hidden={!isAdmin}
-        />
-
-        {/* Intelligence */}
-        <Group
-          title="Intelligence"
-          items={isAdmin ? intelligence : []}
-          pathname={pathname}
-          collapsible isOpen={open.intel} onToggle={() => toggle('intel')}
-          hidden={!isAdmin}
-        />
-
-        {/* Operations */}
-        <Group
-          title="Operations"
-          items={operations}
-          pathname={pathname}
-          collapsible isOpen={open.ops} onToggle={() => toggle('ops')}
-        />
+        <Group title="Sales OS" items={workspace} pathname={pathname} />
 
         {/* Configuration — admin only */}
         <Group

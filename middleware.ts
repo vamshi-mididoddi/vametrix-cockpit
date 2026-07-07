@@ -1,8 +1,8 @@
-import { NextResponse, type NextRequest } from 'next/server';
+﻿import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // PUBLIC routes anyone can visit (no auth check):
-// /api/engine has its own auth (x-admin-key / Meta webhook verify) — Meta's
+// /api/engine has its own auth (x-admin-key / Meta webhook verify) â€” Meta's
 // webhook calls and cron ticks can't pass a browser login.
 const PUBLIC_PATHS = ['/login', '/auth', '/_next', '/favicon', '/api/telegram', '/api/chat', '/api/engine'];
 const PUBLIC_EXACT = new Set(['/']);
@@ -24,12 +24,12 @@ export async function middleware(req: NextRequest) {
 
   // Landing page: served statically to anonymous visitors (fast, CDN-cached).
   // Logged-in visitors are bounced to their dashboard via a cheap cookie check
-  // (no Supabase network round-trip — the dashboard itself validates the session).
+  // (no Supabase network round-trip â€” the dashboard itself validates the session).
   if (pathname === '/') {
     const hasAuthCookie = req.cookies.getAll().some(c => c.name.includes('-auth-token'));
     if (hasAuthCookie) {
       const url = req.nextUrl.clone();
-      url.pathname = '/dashboard';
+      url.pathname = '/sales';
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -43,7 +43,7 @@ export async function middleware(req: NextRequest) {
   const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // If Supabase env isn't available to the middleware, never crash — just
+  // If Supabase env isn't available to the middleware, never crash â€” just
   // send the visitor to /login (which will surface a clear config error).
   if (!SUPA_URL || !SUPA_ANON) {
     return toLogin(req);
@@ -62,7 +62,7 @@ export async function middleware(req: NextRequest) {
     const { data } = await supabase.auth.getUser();
     user = data?.user ?? null;
   } catch {
-    // Auth lookup failed for any reason → treat as logged out, don't crash.
+    // Auth lookup failed for any reason â†’ treat as logged out, don't crash.
     return toLogin(req);
   }
 
