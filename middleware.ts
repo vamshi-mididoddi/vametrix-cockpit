@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // PUBLIC routes anyone can visit (no auth check):
-const PUBLIC_PATHS = ['/login', '/auth', '/_next', '/favicon', '/api/telegram', '/api/chat'];
+// /api/engine has its own auth (x-admin-key / Meta webhook verify) — Meta's
+// webhook calls and cron ticks can't pass a browser login.
+const PUBLIC_PATHS = ['/login', '/auth', '/_next', '/favicon', '/api/telegram', '/api/chat', '/api/engine'];
 const PUBLIC_EXACT = new Set(['/']);
 
 function isPublic(pathname: string): boolean {
