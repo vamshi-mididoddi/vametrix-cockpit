@@ -43,6 +43,7 @@ export function Sidebar({
   const workspace: NavItem[] = [
     { id: 'salesos',  label: 'Pipeline',        href: '/sales',          icon: 'kanban-square', status: 'live' },
     { id: 'salescfg', label: 'Client Settings', href: '/sales/settings', icon: 'settings',      status: 'live' },
+    { id: 'salescli', label: 'Clients',         href: '/sales/clients',  icon: 'building-2' },
   ];
 
   // ── MARKETING & SALES system ──
