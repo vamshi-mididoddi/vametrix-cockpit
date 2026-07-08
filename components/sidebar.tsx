@@ -42,7 +42,8 @@ export function Sidebar({
   // 2026-07-07 — their routes are retired with the old engine.)
   const workspace: NavItem[] = [
     { id: 'salesos',  label: 'Pipeline',        href: '/sales',          icon: 'kanban-square', status: 'live' },
-    { id: 'salescfg', label: 'Client Settings', href: '/sales/settings', icon: 'settings',      status: 'live' },
+    { id: 'salescrm', label: 'Call Desk (CRM)', href: '/sales/crm',      icon: 'phone',         status: 'live' },
+    { id: 'salescfg', label: 'Client Settings', href: '/sales/settings', icon: 'settings' },
     { id: 'salescli', label: 'Clients',         href: '/sales/clients',  icon: 'building-2' },
   ];
 
