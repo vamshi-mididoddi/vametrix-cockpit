@@ -2,9 +2,18 @@
 // Creating a client = one form. Everything else the client configures
 // themselves in Client Settings (self-serve rule).
 import { revalidatePath } from 'next/cache';
-import { salesDb } from '@/lib/salesos';
+import { cookies } from 'next/headers';
+import { salesDb, requirePlatformAdmin } from '@/lib/salesos';
 
 export const dynamic = 'force-dynamic';
+
+async function switchToClient(formData: FormData) {
+  'use server';
+  await requirePlatformAdmin();
+  cookies().set('vmx_org', String(formData.get('slug')), { path: '/', maxAge: 60 * 60 * 24 * 30 });
+  revalidatePath('/sales');
+  revalidatePath('/sales/clients');
+}
 
 async function createClientOrg(formData: FormData) {
   'use server';
@@ -46,6 +55,8 @@ async function createClientOrg(formData: FormData) {
 const inputCls = 'w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-white/30';
 
 export default async function ClientsPage() {
+  await requirePlatformAdmin(); // super-admin only — clients never see this page
+  const active = cookies().get('vmx_org')?.value;
   const db = salesDb();
   const { data: orgs } = await db.from('sales_orgs')
     .select('id,slug,name,status,created_at,config')
@@ -95,6 +106,12 @@ export default async function ClientsPage() {
                 <span className={`text-xs px-2 py-0.5 rounded-full ${o.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-600/30 text-zinc-400'}`}>
                   {o.status}
                 </span>
+                <form action={switchToClient}>
+                  <input type="hidden" name="slug" value={o.slug} />
+                  <button className={`text-xs px-3 py-1.5 rounded-lg transition ${active === o.slug ? 'bg-emerald-500/20 text-emerald-300 cursor-default' : 'bg-white/10 hover:bg-white/15 text-zinc-200'}`}>
+                    {active === o.slug ? '● Managing' : 'Manage'}
+                  </button>
+                </form>
               </div>
             </div>
           ))}
